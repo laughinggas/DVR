@@ -377,9 +377,9 @@ split,
 }
 end
 
-def unif (K:Type*) [field K] [discrete_valuation_field K] : set (val_ring K) := { π | v(π:K) = 1 } 
+def unif (K:Type*) [field K] [discrete_valuation_field K] : set K := { π | v π = 1 }
 
-variables (π : Type*) (π ∈ unif)
+variables (π : K) (hπ : π ∈ unif K)
 
 lemma is_pir (K:Type*) [field K] [discrete_valuation_field K] : is_principal_ideal_ring (val_ring K) :=
 begin
