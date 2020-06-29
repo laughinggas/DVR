@@ -316,50 +316,59 @@ begin
 apply subring.domain (val_ring K),
 end
 
-lemma unit_iff_val_zero (K:Type*) [field K] [discrete_valuation_field K] [α : (val_ring K)] : v (α : K) = 0 ↔ is_unit α := 
+lemma unit_iff_val_zero (α : K) (hα : α ∈ val_ring K) : v (α) = 0 ↔ ∃ β ∈ val_ring K, α * β = 1 := 
 begin
 split,
 {
   rintros,
-  rw is_unit_iff_exists_inv,
   use α⁻¹,
   {
-    unfold val_ring,
-    simp,
-    have f : v((α : K) * (α⁻¹ : K)) = 0,
+    split,
     {
-      rw mul_inv_cancel,
+      unfold val_ring,
+      simp,
+      have f : v((α) * (α⁻¹)) = 0,
       {
-        rw val_one_eq_zero,
-      },
-      {
-        from λ h,
-        by 
+        rw mul_inv_cancel,
         {
-          rw [<-non_zero, a] at h,
-          cases h,
+          rw val_one_eq_zero,
+        },
+        {
+          from λ h,
+          by 
+          {
+            rw [<-non_zero, a] at h,
+            cases h,
+          },
         },
       },
+      rw mul at f,
+      rw a at f,
+      simp at f,
+      rw f,
+      norm_num,  
     },
-  rw mul at f,
-  rw a at f,
-  simp at f,
-  rw f,
-  norm_num,  
-  },
-  {
-    sorry,
+    rw mul_inv_cancel,
+    {
+          from λ h,
+          by 
+          {
+            rw [<-non_zero, a] at h,
+            cases h,
+          },
+    },
   },
 },
 {
   rintros,
-  rw is_unit_iff_exists_inv at a,
   cases a with b a,
-  have f : v((α:K)*(b:K)) = v(1:K),
+  simp at a,
+  cases a,
+  unfold val_ring at a_left,
+  simp at a_left,
+  have f : v((α)*(b)) = v(1:K),
   {
-    norm_cast,
-    rw a,
-    simp,
+    rw a_right,
   },
   rw mul at f,
   rw val_one_eq_zero at f,
@@ -369,12 +378,14 @@ split,
     exact f_left,
   },
   {
-    exact α.2,
+    erw val_ring at hα,
+    simp at hα,
+    exact hα,
   },
   {
-    exact b.2,
+    exact a_left,
   },
-}
+},
 end
 
 def unif (K:Type*) [field K] [discrete_valuation_field K] : set K := { π | v π = 1 }
