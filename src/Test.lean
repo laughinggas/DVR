@@ -6,6 +6,8 @@ import ring_theory.localization
 
 import tactic
 
+import order.bounded_lattice
+
 universe u
 
 /-lemma val (a b c : ℤ ) (h : a*b = c) (f : ℤ -> ℤ) : f(a*b) = f(c) :=
@@ -391,6 +393,146 @@ end
 def unif (K:Type*) [field K] [discrete_valuation_field K] : set K := { π | v π = 1 }
 
 variables (π : K) (hπ : π ∈ unif K)
+
+lemma val_unif_eq_one (hπ : π ∈ unif K) : v(π) = 1 :=
+begin
+unfold unif at hπ,
+simp at hπ,
+exact hπ,
+end
+
+lemma unif_power (hπ : π ∈ unif K) : ∀ n : ℕ, v(π^n) = n :=
+begin
+rintros,
+induction n with d hd,
+{
+  rw pow_zero,
+  rw val_one_eq_zero,
+  rw <-with_top.coe_zero,
+  refl,
+},
+{
+  rw nat.succ_eq_add_one,
+  simp,
+  rw pow_succ',
+  rw mul,
+  rw hd,
+  rw val_unif_eq_one,
+  exact hπ,
+}
+end
+
+lemma nat_ne_top (n :ℕ) : (n:with_top ℤ) ≠ ⊤ := 
+begin
+intro,
+apply with_top.coe_ne_top ↑n,
+exact ℤ,
+exact ↑n,
+split,
+intro,
+rw <-a,
+rw int.coe_nat_eq,
+sorry,
+end
+
+lemma unif_assoc (x : K) (hx : x ∈ val_ring K) (nz : x ≠ 0) (hπ : π ∈ unif K) : ∃! n : ℕ, associated x (π^n) :=
+begin
+split,
+{ 
+  split,
+  {
+    cases (with_top.cases) (v(x)),
+    {
+      rw non_zero at h,
+      exfalso,
+      apply nz,
+      exact h,
+    },
+    {
+      cases h with n h,
+      have n : ℕ,
+      {
+        unfold val_ring at hx,
+        simp at hx,
+        rw h at hx,
+        rw <-with_top.coe_zero at hx,
+        rw with_top.coe_le_coe at hx,
+        cases n,
+        {
+          exact n,
+        },
+        {
+          cases hx,
+        },
+      },
+      let y:= ((x⁻¹)*(π^n)),
+      have f : x * y = (π^n),
+       {
+         simp_rw y,
+         assoc_rw mul_inv_cancel,
+         simp,
+       },
+      use y,
+      {
+        exact y⁻¹,
+      },
+      {
+        rw mul_inv_cancel,
+        {
+          intro,
+          rw a at f,
+          rw mul_zero at f,
+          have g : π^n = 0,
+          {
+            exact eq.symm f,
+          },
+          rw <-non_zero at g,
+          rw unif_power at g,
+          {
+             sorry,                
+          },
+          /-    
+
+          induction n with d hd,
+          {
+            rw pow_zero at f,
+            simp at f,
+            exact f,
+          },
+          {
+            rw nat.succ_eq_add_one at f,
+            rw pow_succ' at f,
+            simp at f,
+            simp at hd,
+            apply hd,
+                     
+            cases f,
+            {
+              apply hd,
+              simp at hd,
+              
+            }
+          }
+-/        sorry,
+        },
+      },  
+    
+      
+      {
+        sorry,
+      },
+      sorry,
+    },
+  },
+  {
+    rintros,
+    sorry,
+  },
+},
+{
+  sorry,
+},
+end
 
 lemma is_pir (K:Type*) [field K] [discrete_valuation_field K] : is_principal_ideal_ring (val_ring K) :=
 begin
