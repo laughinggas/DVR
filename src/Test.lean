@@ -8,6 +8,8 @@ import tactic
 
 import order.bounded_lattice
 
+import algebra.field_power
+
 universe u
 
 /-lemma val (a b c : ℤ ) (h : a*b = c) (f : ℤ -> ℤ) : f(a*b) = f(c) :=
@@ -73,6 +75,10 @@ end
 instance is_local_ring : local_ring R := local_of_unique_max_ideal unique_max_ideal
 
 open local_ring
+
+def local_pid_dvr (S : Type u) [integral_domain S] [local_ring S]
+  [is_principal_ideal_ring S] (non_field : local_ring.maximal_ideal S ≠ ⊥ ) :
+  discrete_valuation_ring S := sorry,
 
 noncomputable theory
 open_locale classical
@@ -305,7 +311,7 @@ instance (K:Type*) [field K] [discrete_valuation_field K] : is_submonoid (val_ri
             simp at a_1,
             simp at a_2,
             rw mul,
-            apply add_le_add' a_1 a_2,
+            apply add_nonneg' a_1 a_2,
             end, }
 
 instance valuation_ring (K:Type*) [field K] [discrete_valuation_field K] : is_subring (val_ring K) :=
@@ -401,7 +407,80 @@ simp at hπ,
 exact hπ,
 end
 
-lemma unif_power (hπ : π ∈ unif K) : ∀ n : ℕ, v(π^n) = n :=
+lemma unif_ne_zero (hπ : π ∈ unif K) : π ≠ 0 :=
+begin
+simp,
+      unfold unif at hπ,
+      simp at hπ,
+      intro g,
+      rw <-non_zero at g,
+      rw hπ at g,
+      cases g,
+end 
+
+lemma with_top.add_happens (a b c : with_top ℤ) (ne_top : a ≠ ⊤) : b=c ↔ a+b = a+c :=
+begin
+cases with_top.cases a,
+{
+  exfalso,
+  apply ne_top,
+  exact h,
+},
+cases h with n h,
+rw h,
+split,
+{
+  rintros,
+  rw a_1,
+},
+cases with_top.cases b,
+{
+  rw h_1,
+  rw with_top.add_top,
+  rintros,
+  have b_1 : ↑n + c = ⊤,
+  exact eq.symm a_1,
+  rw with_top.add_eq_top at b_1,
+  cases b_1,
+  {
+    exfalso,
+    apply with_top.coe_ne_top,
+    {
+      exact b_1,
+    },
+  },
+  exact eq.symm b_1,
+},
+{
+  cases h_1 with m h_1,
+  rw h_1,
+  cases with_top.cases c,
+  {
+    rw h_2,
+    rintros,
+    rw with_top.add_top at a_1,
+    rw with_top.add_eq_top at a_1,
+    cases a_1,
+    {
+      exfalso,
+      apply with_top.coe_ne_top,
+      exact a_1,
+    },
+    {
+      exact a_1,
+    },
+  },
+  cases h_2 with l h_2,
+  rw h_2,
+  rintros,
+  norm_cast,
+  norm_cast at a_1,
+  simp at a_1,
+  assumption,
+}
+end
+
+lemma unif_nat_power (hπ : π ∈ unif K) : ∀ n : ℕ, v(π^n) = n :=
 begin
 rintros,
 induction n with d hd,
@@ -422,6 +501,69 @@ induction n with d hd,
 }
 end
 
+lemma unif_int_power (hπ : π ∈ unif K) : ∀ n : ℤ, v(π^n) = n :=
+begin
+rintros,
+cases n,
+{
+  rw fpow_of_nat,
+  rw unif_nat_power,
+  {
+    sorry,
+  },
+  exact hπ,
+},
+{
+  simp,
+  rw nat.succ_eq_add_one,
+  have f : (π ^ (n + 1)) * (π ^ (n + 1))⁻¹ = 1,
+  {
+    rw mul_inv_cancel,
+    induction n with d hd,
+    {
+      simp,
+      apply unif_ne_zero,
+      exact hπ,
+    },
+    {
+      rw pow_succ',
+      intro,
+      rw mul_eq_zero at a,
+      cases a,
+      {
+        rw nat.succ_eq_add_one at a,
+        apply hd,
+        exact a,
+      },
+      {
+        apply' unif_ne_zero,
+        exact a,
+        exact hπ,
+      },     
+    },
+  },
+  have g : v((π ^ (n + 1)) * (π ^ (n + 1))⁻¹) = v(1:K),
+  {
+    rw f,
+  },
+  {
+    rw mul at g,
+    rw val_one_eq_zero at g,
+    rw unif_nat_power at g,
+    {
+      rw with_top.add_happens (↑-[1+ n]) (↑(n + 1) + v (π ^ (n + 1))⁻¹) 0 at g,
+      simp at g,
+      /-assoc_rw <-with_top.coe_add at g,-/
+      sorry,
+      sorry,
+    },
+    {
+      exact hπ,
+    },
+  },
+},
+end
+
 lemma nat_ne_top (n :ℕ) : (n:with_top ℤ) ≠ ⊤ := 
 begin
 intro,
@@ -435,8 +577,132 @@ rw int.coe_nat_eq,
 sorry,
 end
 
+
+lemma val_inv (x : K) (nz : x ≠ 0) : v(x⁻¹) + v(x) = 0 :=
+begin
+rw <- mul,
+rw inv_mul_cancel,
+{
+  rw val_one_eq_zero,
+},
+exact nz,
+end
+
 lemma unif_assoc (x : K) (hx : x ∈ val_ring K) (nz : x ≠ 0) (hπ : π ∈ unif K) : ∃! n : ℕ, associated x (π^n) :=
 begin
+split,
+rintros,
+split,
+simp,
+unfold associated,
+split,
+cases (with_top.cases) (v(x)),
+{
+ rw non_zero at h,
+ exfalso,
+ apply nz,
+ exact h,
+},
+{
+  cases h with n h,
+  let y:= (x⁻¹ * π^n),
+  have y : units K,
+  {
+    have f : v(y) = 0,
+      {
+        have g : x*y = π^n,
+        {
+          simp_rw y,
+          assoc_rw mul_inv_cancel,
+          simp,
+        },
+        have k : v(x*y) = n,
+        {
+          rw g,
+          rw unif_int_power,
+          exact hπ,
+        },
+        rw mul at k,
+        rw h at k,
+        rw with_top.add_happens (↑n) (v(y)) 0,
+        {
+          norm_cast,
+          simp,
+          exact k,
+        },
+        {
+          exact with_top.coe_ne_top,
+        },
+      },
+    {
+      sorry,
+      /-split,
+      rw unit_iff_val_zero at f,
+      simp at f,
+      cases f,
+      cases f_h,
+      /-exact f_h_right,-/
+      sorry,-/
+    },
+      
+      
+  },
+  sorry,
+},
+  /-have n : ℕ,
+  {
+    unfold val_ring at hx,
+    simp at hx,
+    rw h at hx,
+    rw <-with_top.coe_zero at hx,
+    rw with_top.coe_le_coe at hx,
+    cases n,
+    {
+      exact n,
+    },
+    {
+      cases hx,
+    },
+  },-/
+  /-split,
+  {
+    let y:= (x⁻¹ * π^n),
+    have y : units K,
+    {
+      have f : v(y) = 0,
+      {
+        have g : x*y = π^n,
+        {
+          simp_rw y,
+          assoc_rw mul_inv_cancel,
+          simp,
+        },
+        have k : v(x*y) = n,
+        {
+          rw g,
+          rw unif_power,
+          exact hπ,
+        },
+        rw mul at k,
+        rw h at k,
+        rw with_top.add_happens (↑n) (v(y)) 0,
+        {
+          norm_cast,
+          simp,
+          exact k,
+        }
+        simp_rw y,
+        rw mul,
+        rw unif_power,
+        {
+          rw with_top.add_happens (v(x)) (v x⁻¹ + ↑n) 0,
+        }
+      }
+    }
+    split,
+    use ↑(x⁻¹ * (π^n)),
+  }
+}    
 split,
 { 
   split,
@@ -450,7 +716,7 @@ split,
     },
     {
       cases h with n h,
-      have n : ℕ,
+      /- have n : ℕ,
       {
         unfold val_ring at hx,
         simp at hx,
@@ -464,7 +730,7 @@ split,
         {
           cases hx,
         },
-      },
+      },-/
       let y:= ((x⁻¹)*(π^n)),
       have f : x * y = (π^n),
        {
@@ -531,7 +797,10 @@ split,
 },
 {
   sorry,
-},
+}, -/
+sorry,
+sorry,
+sorry,
 end
 
 lemma is_pir (K:Type*) [field K] [discrete_valuation_field K] : is_principal_ideal_ring (val_ring K) :=
