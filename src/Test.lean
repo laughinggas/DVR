@@ -76,10 +76,6 @@ instance is_local_ring : local_ring R := local_of_unique_max_ideal unique_max_id
 
 open local_ring
 
-def local_pid_dvr (S : Type u) [integral_domain S] [local_ring S]
-  [is_principal_ideal_ring S] (non_field : local_ring.maximal_ideal S ≠ ⊥ ) :
-  discrete_valuation_ring S := sorry,
-
 noncomputable theory
 open_locale classical
 class discrete_valuation_field (K : Type*) [field K] :=
@@ -146,35 +142,23 @@ end
 
 lemma val_one_eq_zero : v(1 : K) = 0 :=
 begin
-have f : (1:K)*(1:K) = (1 : K),
-simp,
-have g : v(1 : K) = v((1 : K)*(1 : K)),
-simp,
-have k : v((1 : K)*(1 : K)) = v(1 : K) + v(1 : K),
-{apply mul},
-rw k at g,
-rw g,
-cases (with_top.cases (v(1:K))) with h1 h2,
-{
-rw h1,
-rw h1 at g,
-rw <-g,
-rw non_zero at h1,
-exfalso,
-exact one_ne_zero h1,
-},
-cases h2 with n h2,
-{
-rw h2,
-rw sum_zero_iff_zero,
-rw h2 at g,
-norm_cast at g,
-simp,
-linarith,
-},
+  have h : (1 : K) * 1 = 1,
+    simp,
+  apply_fun v at h,
+  rw mul at h,
+  -- now we know v(1)+v(1)=v(1) and we want to deduce v(1)=0 (i.e. rule out v(1)=⊤)
+  rcases (with_top.cases (v(1:K))) with h1 | ⟨n, h2⟩, -- do all the cases in one go
+  { rw non_zero at h1,
+    cases (one_ne_zero h1)
+  },
+  { rw h2 at *,
+    norm_cast at *,
+    -- library_search found the next line
+    exact add_left_eq_self.mp (congr_arg (has_add.add n) (congr_arg (has_add.add n) h)),
+  },
 end
 
-lemma val_minus_one_is_zero : v(-1 : K) = 0 :=
+lemma val_minus_one_is_zero : v((-1) : K) = 0 :=
 begin
 have f : (-1:K)*(-1:K) = (1 : K),
 simp,
@@ -190,13 +174,13 @@ rw <-sum_zero_iff_zero,
 exact g,
 end
 
-lemma val_zero : v(0:K) = ⊤ :=
+@[simp] lemma val_zero : v(0:K) = ⊤ :=
 begin
 rw non_zero,
 end
 
 
-lemma with_top.transitivity (a b c : with_top ℤ ) : a ≤ b -> b ≤ c -> a ≤ c :=
+lemma with_top.transitivity (a b c : with_top ℤ) : a ≤ b -> b ≤ c -> a ≤ c :=
 begin
 rintros,
 cases(with_top.cases c) with h1 h2,
@@ -256,12 +240,10 @@ instance (K : Type*) [field K] [discrete_valuation_field K] : is_add_subgroup (v
   zero_mem := begin
               unfold val_ring,
               simp,
-              rw val_zero,
-              simp,  
               end,
   add_mem := begin
             unfold val_ring,
-            simp,
+            simp only [set.mem_set_of_eq],
             rintros,
             have g : min (v(a)) (v(b)) ≤ v(a + b),
             {
@@ -270,30 +252,20 @@ instance (K : Type*) [field K] [discrete_valuation_field K] : is_add_subgroup (v
             rw min_le_iff at g,
             cases g,
             {
-              apply with_top.transitivity,
-              exact a_1,
-              exact g,
+              exact with_top.transitivity _ _ _ a_1 g,
             },
             {
-              apply with_top.transitivity,
-              exact a_2,
-              exact g,
+              exact with_top.transitivity _ _ _ a_2 g,
             },
             end,
   neg_mem := begin
             unfold val_ring,
             rintros,
-            simp,
-            simp at a_1,
-            have f : -a = a * (-1 : K),
-            {
-              simp,
-            },
-            rw f,
-            rw mul,
-            rw val_minus_one_is_zero,
-            simp,
-            assumption, 
+            simp only [set.mem_set_of_eq],
+            simp only [set.mem_set_of_eq] at a_1,
+            have f : -a = a * (-1 : K) := by simp,
+            rw [f, mul, val_minus_one_is_zero],
+            simp [a_1], 
             end,
 }
 
@@ -315,14 +287,10 @@ instance (K:Type*) [field K] [discrete_valuation_field K] : is_submonoid (val_ri
             end, }
 
 instance valuation_ring (K:Type*) [field K] [discrete_valuation_field K] : is_subring (val_ring K) :=
-begin
-refine is_subring.mk,
-end
+{}
 
 instance is_domain (K:Type*) [field K] [discrete_valuation_field K] : integral_domain (val_ring K) :=
-begin
-apply subring.domain (val_ring K),
-end
+subring.domain (val_ring K)
 
 lemma unit_iff_val_zero (α : K) (hα : α ∈ val_ring K) : v (α) = 0 ↔ ∃ β ∈ val_ring K, α * β = 1 := 
 begin
@@ -480,112 +448,204 @@ cases with_top.cases b,
 }
 end
 
-lemma unif_nat_power (hπ : π ∈ unif K) : ∀ n : ℕ, v(π^n) = n :=
+lemma with_top.distrib (a b c : with_top ℤ) (na : a ≠ ⊤) (nb : b ≠ ⊤) (nc : c ≠ ⊤) : (a + b)*c = a*c + b*c :=
+begin
+  rcases(with_top.cases a) with rfl | ⟨a, rfl⟩;
+  rcases(with_top.cases b) with rfl | ⟨b, rfl⟩;
+  rcases(with_top.cases c) with rfl | ⟨n, rfl⟩;
+  try {simp},
+  repeat
+  {
+  simp at na,
+  exfalso,
+  exact na,
+  },
+  {
+  simp at nb,
+  exfalso,
+  exact nb,
+  },
+  {
+  simp at nc,
+  exfalso,
+  exact nc,
+  },
+  rw <-with_top.coe_add,
+  repeat {rw <-with_top.coe_mul},
+  rw <-with_top.coe_add,
+  rw with_top.coe_eq_coe,
+  rw right_distrib,
+end
+
+lemma one_mul (a : with_top ℤ) : 1 * a = a :=
+begin
+cases (with_top.cases) a with a ha,
+{
+  rw a,
+  simp,
+},
+{
+  cases ha with n ha,
+  rw ha,
+  norm_cast,
+  simp,
+}
+end
+
+lemma nat_ne_top (n :ℕ) : (n : with_top ℤ) ≠ ⊤ := 
+begin
+simp,
+end
+
+lemma val_inv (x : K) (nz : x ≠ 0) : v(x) + v(x)⁻¹ = 0 :=
+begin
+rw <- mul,
+rw mul_inv_cancel,
+{
+  rw val_one_eq_zero,
+},
+exact nz,
+end
+
+lemma with_top.sub_add_eq_zero (n : ℕ) : ((-n : ℤ) : with_top ℤ) + (n : with_top ℤ) = 0 :=
+begin
+rw <-with_top.coe_nat,
+rw <-with_top.coe_add,
+simp only [add_left_neg, int.nat_cast_eq_coe_nat, with_top.coe_zero],
+end
+
+lemma with_top.add_sub_eq_zero (n : ℕ) : (n : with_top ℤ) + ((-n : ℤ) : with_top ℤ) = 0 :=
+begin
+rw <-with_top.coe_nat,
+rw <-with_top.coe_add,
+simp only [add_right_neg, int.nat_cast_eq_coe_nat, with_top.coe_zero],
+end
+
+lemma contra_non_zero (x : K) (n : ℕ) (nz : n ≠ 0) : v(x^n) ≠ ⊤ ↔ x ≠ 0 :=
+begin
+split,
+{
+  contrapose,
+  simp,
+  intro,
+  rw a,
+  rw zero_pow',
+  {
+    exact val_zero,
+  },
+  {
+    exact nz,
+  },
+},
+{
+  contrapose,
+  simp,
+  intro,
+  rw non_zero at a,
+  contrapose a,
+  apply pow_ne_zero,
+  exact a,
+},
+end
+
+lemma val_nat_power (a : K) (nz : a ≠ 0) : ∀ n : ℕ, v(a^n) = (n : with_top ℤ)*v(a) :=
 begin
 rintros,
 induction n with d hd,
 {
   rw pow_zero,
   rw val_one_eq_zero,
-  rw <-with_top.coe_zero,
-  refl,
+  simp,
 },
 {
   rw nat.succ_eq_add_one,
-  simp,
   rw pow_succ',
   rw mul,
   rw hd,
-  rw val_unif_eq_one,
-  exact hπ,
+  norm_num,
+  rw with_top.distrib,
+  rw one_mul,
+  apply nat_ne_top,
+  apply with_top.one_ne_top,
+  intro,
+  rw non_zero at a_1,
+  apply nz,
+  exact a_1,   
 }
 end
 
-lemma unif_int_power (hπ : π ∈ unif K) : ∀ n : ℤ, v(π^n) = n :=
+lemma val_int_power (a : K) (nz : a ≠ 0) : ∀ n : ℤ, v(a^n) = (n : with_top ℤ)*v(a) :=
 begin
 rintros,
 cases n,
 {
   rw fpow_of_nat,
-  rw unif_nat_power,
+  rw val_nat_power,
   {
-    sorry,
+    simp only [int.of_nat_eq_coe],
+    rw <-with_top.coe_nat,
+    simp only [int.nat_cast_eq_coe_nat],
   },
-  exact hπ,
+  exact nz,
 },
 {
-  simp,
+  simp only [fpow_neg_succ_of_nat],
   rw nat.succ_eq_add_one,
-  have f : (π ^ (n + 1)) * (π ^ (n + 1))⁻¹ = 1,
+  rw with_top.add_happens (v (a ^ (n + 1))) (v (a ^ (n + 1))⁻¹) (↑-[1+ n] * v a),
   {
-    rw mul_inv_cancel,
-    induction n with d hd,
+    rw val_inv,
     {
-      simp,
-      apply unif_ne_zero,
-      exact hπ,
-    },
-    {
-      rw pow_succ',
-      intro,
-      rw mul_eq_zero at a,
-      cases a,
+      rw val_nat_power,
       {
-        rw nat.succ_eq_add_one at a,
-        apply hd,
-        exact a,
+        simp only [nat.cast_add, nat.cast_one],
+        rw <-with_top.distrib,
+        {
+          simp only [zero_eq_mul],
+          left,
+          rw int.neg_succ_of_nat_coe',
+          rw sub_eq_add_neg,
+          rw with_top.coe_add,
+          rw add_comm (↑-↑n),
+          rw <-add_assoc,
+          rw add_comm,
+          rw add_assoc,
+          rw <-with_top.coe_one,
+          rw <-with_top.coe_add,
+          simp,
+          rw with_top.sub_add_eq_zero,
+          },
+          {
+            norm_cast,
+            apply with_top.nat_ne_top,
+          },
+          {
+            simp,        
+          },
+          {
+            intro,
+            simp_rw [non_zero, nz] at a_1,
+            exact a_1,
+          },
       },
       {
-        apply' unif_ne_zero,
-        exact a,
-        exact hπ,
-      },     
-    },
-  },
-  have g : v((π ^ (n + 1)) * (π ^ (n + 1))⁻¹) = v(1:K),
-  {
-    rw f,
-  },
-  {
-    rw mul at g,
-    rw val_one_eq_zero at g,
-    rw unif_nat_power at g,
-    {
-      rw with_top.add_happens (↑-[1+ n]) (↑(n + 1) + v (π ^ (n + 1))⁻¹) 0 at g,
-      simp at g,
-      /-assoc_rw <-with_top.coe_add at g,-/
-      sorry,
-      sorry,
+        exact nz,
+      },
     },
     {
-      exact hπ,
+      apply pow_ne_zero,
+      exact nz,
+    },  
+  },
+  {
+    rw contra_non_zero,
+    {
+      exact nz,
     },
+    {
+      simp,
+    }, 
   },
 },
-end
-
-lemma nat_ne_top (n :ℕ) : (n:with_top ℤ) ≠ ⊤ := 
-begin
-intro,
-apply with_top.coe_ne_top ↑n,
-exact ℤ,
-exact ↑n,
-split,
-intro,
-rw <-a,
-rw int.coe_nat_eq,
-sorry,
-end
-
-
-lemma val_inv (x : K) (nz : x ≠ 0) : v(x⁻¹) + v(x) = 0 :=
-begin
-rw <- mul,
-rw inv_mul_cancel,
-{
-  rw val_one_eq_zero,
-},
-exact nz,
 end
 
 lemma unif_assoc (x : K) (hx : x ∈ val_ring K) (nz : x ≠ 0) (hπ : π ∈ unif K) : ∃! n : ℕ, associated x (π^n) :=
@@ -839,13 +899,9 @@ def valuation_dvr (K:Type*) [field K] [discrete_valuation_field K] (S : Type*) (
 
 
 /-
-def local_pid_dvr {S : Type u} [is_local : local_ring S] [pid: principal_ideal_domain S] (non_field : local_ring.nonunits_ideal S ≠ ⊥ ) :
-  discrete_valuation_ring S :=
-  { prime_ideal' := (nonunits_ideal S),
-  primality := (nonunits_ideal S).is_prime,
-  is_nonzero := _,
-  unique_nonzero_prime_ideal := _,
-  ..pid}
+def local_pid_dvr (S : Type u) [integral_domain S] [local_ring S]
+  [is_principal_ideal_ring S] (non_field : local_ring.maximal_ideal S ≠ ⊥ ) :
+  discrete_valuation_ring S := sorry,
 
 lemma local_pid_dvr {S : Type u} (is_local : local_ring S) (pid: principal_ideal_domain S) (non_field : local_ring.nonunits_ideal S ≠ ⊥ ) : discrete_valuation_ring S :=
 begin
