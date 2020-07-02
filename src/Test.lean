@@ -292,78 +292,6 @@ instance valuation_ring (K:Type*) [field K] [discrete_valuation_field K] : is_su
 instance is_domain (K:Type*) [field K] [discrete_valuation_field K] : integral_domain (val_ring K) :=
 subring.domain (val_ring K)
 
-lemma unit_iff_val_zero (α : K) (hα : α ∈ val_ring K) : v (α) = 0 ↔ ∃ β ∈ val_ring K, α * β = 1 := 
-begin
-split,
-{
-  rintros,
-  use α⁻¹,
-  {
-    split,
-    {
-      unfold val_ring,
-      simp,
-      have f : v((α) * (α⁻¹)) = 0,
-      {
-        rw mul_inv_cancel,
-        {
-          rw val_one_eq_zero,
-        },
-        {
-          from λ h,
-          by 
-          {
-            rw [<-non_zero, a] at h,
-            cases h,
-          },
-        },
-      },
-      rw mul at f,
-      rw a at f,
-      simp at f,
-      rw f,
-      norm_num,  
-    },
-    rw mul_inv_cancel,
-    {
-          from λ h,
-          by 
-          {
-            rw [<-non_zero, a] at h,
-            cases h,
-          },
-    },
-  },
-},
-{
-  rintros,
-  cases a with b a,
-  simp at a,
-  cases a,
-  unfold val_ring at a_left,
-  simp at a_left,
-  have f : v((α)*(b)) = v(1:K),
-  {
-    rw a_right,
-  },
-  rw mul at f,
-  rw val_one_eq_zero at f,
-  rw add_eq_zero_iff' at f,
-  {
-    cases f,
-    exact f_left,
-  },
-  {
-    erw val_ring at hα,
-    simp at hα,
-    exact hα,
-  },
-  {
-    exact a_left,
-  },
-},
-end
-
 def unif (K:Type*) [field K] [discrete_valuation_field K] : set K := { π | v π = 1 }
 
 variables (π : K) (hπ : π ∈ unif K)
@@ -548,6 +476,25 @@ split,
 },
 end
 
+
+lemma contra_non_zero_one (x : K) : v(x) ≠ ⊤ ↔ x ≠ 0 := 
+begin
+split,
+{
+  intro,
+  rw <-pow_one x at a,
+  rw contra_non_zero x 1 at a,
+  exact a,
+  simp,
+},
+{
+  contrapose,
+  simp,
+  rw non_zero,
+  simp,
+},
+end
+
 lemma val_nat_power (a : K) (nz : a ≠ 0) : ∀ n : ℕ, v(a^n) = (n : with_top ℤ)*v(a) :=
 begin
 rintros,
@@ -648,8 +595,151 @@ cases n,
 },
 end
 
+lemma unit_iff_val_zero (α : K) (hα : α ∈ val_ring K) (nzα : α ≠ 0) : v (α) = 0 ↔ ∃ β : units (val_ring K), α * β = 1 := 
+begin
+split,
+{
+  rintros,
+  use α⁻¹,
+  {
+    {
+      unfold val_ring,
+      simp,
+      rw val_int_power α nzα (-1),
+    }
+    split,
+    {
+      unfold val_ring,
+      simp,
+      have f : v((α) * (α⁻¹)) = 0,
+      {
+        rw mul_inv_cancel,
+        {
+          rw val_one_eq_zero,
+        },
+        {
+          from λ h,
+          by 
+          {
+            rw [<-non_zero, a] at h,
+            cases h,
+          },
+        },
+      },
+      rw mul at f,
+      rw a at f,
+      simp at f,
+      rw f,
+      norm_num,  
+    },
+    rw mul_inv_cancel,
+    {
+          from λ h,
+          by 
+          {
+            rw [<-non_zero, a] at h,
+            cases h,
+          },
+    },
+  },
+},
+{
+  rintros,
+  cases a with b a,
+  simp at a,
+  cases a,
+  unfold val_ring at a_left,
+  simp at a_left,
+  have f : v((α)*(b)) = v(1:K),
+  {
+    rw a_right,
+  },
+  rw mul at f,
+  rw val_one_eq_zero at f,
+  rw add_eq_zero_iff' at f,
+  {
+    cases f,
+    exact f_left,
+  },
+  {
+    erw val_ring at hα,
+    simp at hα,
+    exact hα,
+  },
+  {
+    exact a_left,
+  },
+},
+end
+
+lemma val_eq_iff_asso (x y : K) (hx : x ∈ val_ring K) (hy : y ∈ val_ring K) (nzx : x ≠ 0) (nzy : y ≠ 0) : v(x) = v(y) ↔ ∃ β : units (val_ring K), x * β = y :=
+begin
+split,
+intros,
+use (x⁻¹*y),
+{
+  {
+    unfold val_ring,
+    simp,
+    rw mul,
+    rw with_top.add_happens (v(x⁻¹)) _ _ at a,
+    {
+      rw add_comm at a,
+      rw val_inv at a,
+      {
+        rw <-a,
+        norm_num,    
+      },
+      exact nzx,
+    },
+    {
+      intro f,
+      rw non_zero at f,
+      simp at f,
+      apply nzx,
+      exact f,
+    },
+  },
+},
+{
+  rintros,
+  cases a with z a,
+  simp at a,
+  cases a,
+  apply_fun v at a_right,
+
+},
+{
+  rw mul_comm,
+  rw mul_assoc,
+  assoc_rw mul_inv_cancel_assoc_right,
+  rw inv_mul_cancel,
+  exact nzy,   
+},
+{
+  rw mul_assoc,
+  assoc_rw mul_inv_cancel_assoc_right,
+  rw inv_mul_cancel,
+  exact nzy,
+},
+{
+  simp,
+  rw mul_inv_cancel_assoc_right,
+  exact nzx,
+},
+{
+  rintros,
+  cases a with z a,
+  apply_fun v at a,
+  rw mul at a,
+}
+apply_fun v,
+end
+
 lemma unif_assoc (x : K) (hx : x ∈ val_ring K) (nz : x ≠ 0) (hπ : π ∈ unif K) : ∃! n : ℕ, associated x (π^n) :=
 begin
+unfold unif at hπ,
+simp at hπ,
 split,
 rintros,
 split,
@@ -665,7 +755,7 @@ cases (with_top.cases) (v(x)),
 },
 {
   cases h with n h,
-  let y:= (x⁻¹ * π^n),
+  let y := (x⁻¹ * π^n),
   have y : units K,
   {
     have f : v(y) = 0,
@@ -676,24 +766,35 @@ cases (with_top.cases) (v(x)),
           assoc_rw mul_inv_cancel,
           simp,
         },
-        have k : v(x*y) = n,
+        apply_fun v at g,
+        rw val_int_power at g,
+        rw hπ at g,
+        norm_cast at g,
+        simp at g,
+        rw mul at g,
+        rw h at g,
+        cases with_top.cases (v(y)),
         {
-          rw g,
-          rw unif_int_power,
-          exact hπ,
-        },
-        rw mul at k,
-        rw h at k,
-        rw with_top.add_happens (↑n) (v(y)) 0,
-        {
-          norm_cast,
+          rw h_1,
           simp,
-          exact k,
+          rw h_1 at g,
+          simp at g,
+          exact g,
         },
         {
-          exact with_top.coe_ne_top,
+          cases h_1 with m h_1,
+          rw h_1,
+          rw h_1 at g,
+          norm_cast at g,
+          norm_cast,
+          simp at g,
+          exact g,
         },
+        rw <-contra_non_zero_one,
+        rw hπ,
+        simp,
       },
+    
     {
       sorry,
       /-split,
