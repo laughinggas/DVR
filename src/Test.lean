@@ -595,52 +595,37 @@ cases n,
 },
 end
 
-lemma unit_iff_val_zero (α : K) (hα : α ∈ val_ring K) (nzα : α ≠ 0) : v (α) = 0 ↔ ∃ β : units (val_ring K), α * β = 1 := 
+lemma unit_iff_val_zero (α : K) (hα : α ∈ val_ring K) (nzα : α ≠ 0) : v (α) = 0 ↔ ∃ β ∈ val_ring K, α * β = 1 := 
 begin
 split,
 {
   rintros,
   use α⁻¹,
+  split,
   {
     {
       unfold val_ring,
       simp,
-      rw val_int_power α nzα (-1),
-    }
-    split,
-    {
-      unfold val_ring,
-      simp,
-      have f : v((α) * (α⁻¹)) = 0,
+      rw <-with_top.coe_zero,
+      rw with_top.coe_le_iff,
+      rintros,
+      rw with_top.add_happens (v(α)) _ _ at a_1,
       {
-        rw mul_inv_cancel,
+        rw val_inv at a_1,
         {
-          rw val_one_eq_zero,
+          rw a at a_1,
+          simp only [with_top.zero_eq_coe, zero_add] at a_1,
+          rw a_1,
         },
-        {
-          from λ h,
-          by 
-          {
-            rw [<-non_zero, a] at h,
-            cases h,
-          },
-        },
+        exact nzα,
       },
-      rw mul at f,
-      rw a at f,
-      simp at f,
-      rw f,
-      norm_num,  
+      simp_rw [contra_non_zero_one],
+      exact nzα,
     },
+  },
+  {
     rw mul_inv_cancel,
-    {
-          from λ h,
-          by 
-          {
-            rw [<-non_zero, a] at h,
-            cases h,
-          },
-    },
+    exact nzα,
   },
 },
 {
@@ -672,7 +657,7 @@ split,
 },
 end
 
-lemma val_eq_iff_asso (x y : K) (hx : x ∈ val_ring K) (hy : y ∈ val_ring K) (nzx : x ≠ 0) (nzy : y ≠ 0) : v(x) = v(y) ↔ ∃ β : units (val_ring K), x * β = y :=
+lemma val_eq_iff_asso (x y : K) (hx : x ∈ val_ring K) (hy : y ∈ val_ring K) (nzx : x ≠ 0) (nzy : y ≠ 0) : v(x) = v(y) ↔ ∃ β ∈ val_ring K, v(β) = 0 ∧ x * β = y :=
 begin
 split,
 intros,
@@ -688,7 +673,9 @@ use (x⁻¹*y),
       rw val_inv at a,
       {
         rw <-a,
-        norm_num,    
+        norm_num,
+        rw mul_inv_cancel_assoc_right,
+        exact nzx,    
       },
       exact nzx,
     },
@@ -706,34 +693,13 @@ use (x⁻¹*y),
   cases a with z a,
   simp at a,
   cases a,
-  apply_fun v at a_right,
-
+  cases a_right with a_1 a_2,
+  apply_fun v at a_2,
+  rw mul at a_2,
+  rw a_1 at a_2,
+  simp at a_2,
+  exact a_2,
 },
-{
-  rw mul_comm,
-  rw mul_assoc,
-  assoc_rw mul_inv_cancel_assoc_right,
-  rw inv_mul_cancel,
-  exact nzy,   
-},
-{
-  rw mul_assoc,
-  assoc_rw mul_inv_cancel_assoc_right,
-  rw inv_mul_cancel,
-  exact nzy,
-},
-{
-  simp,
-  rw mul_inv_cancel_assoc_right,
-  exact nzx,
-},
-{
-  rintros,
-  cases a with z a,
-  apply_fun v at a,
-  rw mul at a,
-}
-apply_fun v,
 end
 
 lemma unif_assoc (x : K) (hx : x ∈ val_ring K) (nz : x ≠ 0) (hπ : π ∈ unif K) : ∃! n : ℕ, associated x (π^n) :=
