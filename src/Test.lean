@@ -1,30 +1,15 @@
 import ring_theory.ideals
-
 import ring_theory.principal_ideal_domain
-
 import ring_theory.localization
-
 import tactic
-
 import order.bounded_lattice
-
 import algebra.field_power
-
 universe u
 
-/-lemma val (a b c : ℤ ) (h : a*b = c) (f : ℤ -> ℤ) : f(a*b) = f(c) :=
-begin
-  rw h,
-end -/
-
 class discrete_valuation_ring (R : Type u) [integral_domain R] [is_principal_ideal_ring R] :=
-
 (prime_ideal' : ideal R)
-
 (primality : prime_ideal'.is_prime)
-
 (is_nonzero : prime_ideal' ≠ ⊥)
-
 (unique_nonzero_prime_ideal : ∀ P : ideal R, P.is_prime → P = ⊥ ∨ P = prime_ideal')
 
 namespace discrete_valuation_ring
@@ -47,29 +32,17 @@ begin
 end
 
 lemma unique_max_ideal : ∃! I : ideal R, I.is_maximal :=
-
 begin
-
   use prime_ideal R,
-
   split,
-
   { exact prime_ideal_is_maximal },
-
   { intros y a,
-
     cases discrete_valuation_ring.unique_nonzero_prime_ideal y a.is_prime,
-
     { exfalso,
-
       rw h at a,
-
       apply discrete_valuation_ring.primality.left,
-
       exact a.right (prime_ideal R) (bot_lt_iff_ne_bot.2 discrete_valuation_ring.is_nonzero) },
-
     { assumption } }
-
 end
 
 instance is_local_ring : local_ring R := local_of_unique_max_ideal unique_max_ideal
