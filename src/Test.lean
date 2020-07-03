@@ -702,16 +702,15 @@ use (x⁻¹*y),
 },
 end
 
-lemma unif_assoc (x : K) (hx : x ∈ val_ring K) (nz : x ≠ 0) (hπ : π ∈ unif K) : ∃! n : ℕ, associated x (π^n) :=
+lemma unif_assoc (x : K) (hx : x ∈ val_ring K) (nz : x ≠ 0) (hπ : π ∈ unif K) : ∃ β ∈ val_ring K, (v(β) = 0 ∧ ∃! n : ℤ, x * β = π^n) :=
 begin
+have hπ' : π ≠ 0,
+{
+  apply unif_ne_zero,
+  exact hπ,
+},
 unfold unif at hπ,
 simp at hπ,
-split,
-rintros,
-split,
-simp,
-unfold associated,
-split,
 cases (with_top.cases) (v(x)),
 {
  rw non_zero at h,
@@ -721,213 +720,49 @@ cases (with_top.cases) (v(x)),
 },
 {
   cases h with n h,
-  let y := (x⁻¹ * π^n),
-  have y : units K,
-  {
-    have f : v(y) = 0,
-      {
-        have g : x*y = π^n,
-        {
-          simp_rw y,
-          assoc_rw mul_inv_cancel,
-          simp,
-        },
-        apply_fun v at g,
-        rw val_int_power at g,
-        rw hπ at g,
-        norm_cast at g,
-        simp at g,
-        rw mul at g,
-        rw h at g,
-        cases with_top.cases (v(y)),
-        {
-          rw h_1,
-          simp,
-          rw h_1 at g,
-          simp at g,
-          exact g,
-        },
-        {
-          cases h_1 with m h_1,
-          rw h_1,
-          rw h_1 at g,
-          norm_cast at g,
-          norm_cast,
-          simp at g,
-          exact g,
-        },
-        rw <-contra_non_zero_one,
-        rw hπ,
-        simp,
-      },
-    
-    {
-      sorry,
-      /-split,
-      rw unit_iff_val_zero at f,
-      simp at f,
-      cases f,
-      cases f_h,
-      /-exact f_h_right,-/
-      sorry,-/
-    },
-      
-      
-  },
-  sorry,
-},
-  /-have n : ℕ,
-  {
-    unfold val_ring at hx,
-    simp at hx,
-    rw h at hx,
-    rw <-with_top.coe_zero at hx,
-    rw with_top.coe_le_coe at hx,
-    cases n,
-    {
-      exact n,
-    },
-    {
-      cases hx,
-    },
-  },-/
-  /-split,
-  {
-    let y:= (x⁻¹ * π^n),
-    have y : units K,
-    {
-      have f : v(y) = 0,
-      {
-        have g : x*y = π^n,
-        {
-          simp_rw y,
-          assoc_rw mul_inv_cancel,
-          simp,
-        },
-        have k : v(x*y) = n,
-        {
-          rw g,
-          rw unif_power,
-          exact hπ,
-        },
-        rw mul at k,
-        rw h at k,
-        rw with_top.add_happens (↑n) (v(y)) 0,
-        {
-          norm_cast,
-          simp,
-          exact k,
-        }
-        simp_rw y,
-        rw mul,
-        rw unif_power,
-        {
-          rw with_top.add_happens (v(x)) (v x⁻¹ + ↑n) 0,
-        }
-      }
-    }
-    split,
-    use ↑(x⁻¹ * (π^n)),
-  }
-}    
-split,
-{ 
   split,
+  let y := x⁻¹ * π^n,
+  have g : v(y) = 0,
   {
-    cases (with_top.cases) (v(x)),
-    {
-      rw non_zero at h,
-      exfalso,
-      apply nz,
-      exact h,
-    },
-    {
-      cases h with n h,
-      /- have n : ℕ,
-      {
-        unfold val_ring at hx,
-        simp at hx,
-        rw h at hx,
-        rw <-with_top.coe_zero at hx,
-        rw with_top.coe_le_coe at hx,
-        cases n,
-        {
-          exact n,
-        },
-        {
-          cases hx,
-        },
-      },-/
-      let y:= ((x⁻¹)*(π^n)),
-      have f : x * y = (π^n),
-       {
-         simp_rw y,
-         assoc_rw mul_inv_cancel,
-         simp,
-       },
-      use y,
-      {
-        exact y⁻¹,
-      },
-      {
-        rw mul_inv_cancel,
-        {
-          intro,
-          rw a at f,
-          rw mul_zero at f,
-          have g : π^n = 0,
-          {
-            exact eq.symm f,
-          },
-          rw <-non_zero at g,
-          rw unif_power at g,
-          {
-             sorry,                
-          },
-          /-    
-
-          induction n with d hd,
-          {
-            rw pow_zero at f,
-            simp at f,
-            exact f,
-          },
-          {
-            rw nat.succ_eq_add_one at f,
-            rw pow_succ' at f,
-            simp at f,
-            simp at hd,
-            apply hd,
-                     
-            cases f,
-            {
-              apply hd,
-              simp at hd,
-              
-            }
-          }
--/        sorry,
-        },
-      },  
-    
-      
-      {
-        sorry,
-      },
-      sorry,
-    },
+    rw [mul, val_int_power π, hπ, add_comm],
+    norm_cast,
+    simp,
+    rw [<-h, val_inv],
+    exact nz,
+    exact hπ',
+  },
+  have f : y ∈ val_ring K,
+  {
+    unfold val_ring,
+    simp,
+    rw g,
+    norm_num,
   },
   {
-    rintros,
-    sorry,
+    use f,
+    split,
+    {
+      exact g,
+    },
+    rw mul_inv_cancel_assoc_right,
+    use n,
+    {
+      split,
+      simp only [eq_self_iff_true],
+      rintros,
+      apply_fun v at a,
+      rw [val_int_power, val_int_power, hπ] at a,
+      {
+        norm_cast at a,
+        simp at a,
+        exact eq.symm a,    
+      },
+      exact hπ',
+      exact hπ',
+    },
+    exact nz,    
   },
 },
-{
-  sorry,
-}, -/
-sorry,
-sorry,
-sorry,
 end
 
 lemma is_pir (K:Type*) [field K] [discrete_valuation_field K] : is_principal_ideal_ring (val_ring K) :=
