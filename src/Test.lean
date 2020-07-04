@@ -738,6 +738,73 @@ cases (with_top.cases) (v(x)),
 },
 end
 
+lemma blah (n : ℤ) : n < n -> false :=
+begin
+simp only [forall_prop_of_false, not_lt],
+end
+
+lemma ideal_is_unif_power (S : ideal (val_ring K)) : ∀ x ∈ S, ∃ n : ℕ, (n : with_top ℤ) ≤ v(x : K) := 
+begin
+intros,
+by_contradiction,
+simp at a,
+cases (with_top.cases) (v(x:K)),
+{
+  rw h at a,
+  simp at a,
+  exact a, 
+},
+{
+  cases h with n h,
+  cases n,
+  {
+    rw h at a,
+    specialize a n,
+    simp at a,
+    rw <-with_top.coe_nat at a,
+    norm_cast at a,
+    apply blah n,
+    simp at a,
+    rw [int.coe_nat_lt],
+    exact a,  
+  },
+  
+},
+end
+
+lemma ideal_is_unique_unif_power (S : ideal (val_ring K)) (x ∈ S) : ∃! (n : ℤ), ((n : with_top ℤ) ≤ v(x : K) ∧ ∀ y ∈ S, ¬v(y:K) = ↑(n-1) ) := 
+begin
+cases ideal_is_unif_power S x H with m g,
+split,
+{
+  simp,
+  split,
+  split,
+  {
+    exact g,
+  },
+    
+  by_contradiction,
+  simp at a,
+  cases (with_top.cases) (v(x:K)),
+    {
+      rw h at a,
+      simp at a,
+      exact a, 
+    },
+    {
+      cases h with n h,
+      rw h at a,
+      norm_cast at a,
+      apply blah n,
+      exact a,    
+    },
+
+
+ sorry, 
+},
+end
+
 lemma is_pir (K:Type*) [field K] [discrete_valuation_field K] : is_principal_ideal_ring (val_ring K) :=
 begin
 split,
