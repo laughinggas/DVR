@@ -768,7 +768,13 @@ cases (with_top.cases) (v(x:K)),
     rw [int.coe_nat_lt],
     exact a,  
   },
-  
+  cases x,
+  unfold val_ring at x_property,
+  simp at x_property,
+  simp at h,
+  rw h at x_property,
+  norm_cast at x_property,
+  cases x_property,
 },
 end
 
