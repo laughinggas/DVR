@@ -744,18 +744,46 @@ begin
 simp only [forall_prop_of_false, not_lt],
 end
 
-noncomputable instance : has_Inf ℕ :=
-⟨λs, if h : ∃n, n ∈ s then @nat.find (λn, n ∈ s) _ h else 0⟩
-
-noncomputable instance : has_Sup ℕ :=
-⟨λs, if h : ∃n, ∀a∈s, a ≤ n then @nat.find (λn, ∀a∈s, a ≤ n) _ h else 0⟩
-
 lemma is_pir (hπ : π ∈ unif K) : is_principal_ideal_ring (val_ring K) :=
 begin
 split,
 rintros,
+rintros,
+by_cases S = ⊥,
+{
+  rw h,
+  use 0,
+  apply eq.symm,
+  rw submodule.span_singleton_eq_bot,
+},
+let R := {n : ℕ | π^n ∈ set.range (λ s : S, (s : K))},
+use π^(Inf R),
+unfold val_ring,
+simp,
+rw val_nat_power,
+rw val_unif_eq_one,
+{
+    rw <-with_top.coe_one,
+    rw <-with_top.coe_nat,
+    rw <-with_top.coe_mul,
+    rw mul_one,
+    norm_cast,
+    simp,
+},
+exact hπ,
+apply unif_ne_zero,
+exact hπ,
+apply submodule.ext,
+rintros,
 split,
-let Q := {n : ℕ | ∃ x ∈ S, (n : with_top ℤ) = v(x:K) },
+{
+  rintros,
+  
+},
+{
+  sorry,
+},
+/-let Q := {n : ℕ | ∃ x ∈ S, (n : with_top ℤ) = v(x:K) },
 by_cases S = ⊥,
 {
   rw h,
@@ -780,16 +808,15 @@ by_cases S = ⊥,
   exact hπ, 
   apply unif_ne_zero,
   exact hπ,
+  have f : ∃ x ∈ S, v(x : K) ≠ ⊤,
+    {
+      sorry,
+    },
   have g : ∃ x ∈ S, v(x : K) = ↑(Inf Q),
   { 
     have g' : Inf Q ∈ Q,
     apply nat.Inf_mem,
     change S ≠ ⊥ at h,
-    split,
-    have f : ∃ x ∈ S, v(x : K) ≠ ⊤,
-    {
-      sorry,
-    },
     cases f with x f,
     use x,
     split,
@@ -823,31 +850,47 @@ by_cases S = ⊥,
       },
       cases f' with m f',
       apply eq.symm,
-      
+      sorry,
       
        
-    } 
-      
+    }, 
+    sorry,
+    simp at g',
+    cases g' with y g',
+    use y,
+    cases g',
+    cases g'_left,
+    exact g'_left_w,
+    split,
+    cases g',
+    cases g'_left,
+    exact g'_left_h,
+    cases g',
+    cases g'_left,
+    simp,
+    exact eq.symm g'_right,  
   },
   have f : π^(Inf Q) ∈ set.range (λ s : S, (s : K)),
   {
+    simp,
+    cases g with x g,
+    cases g,
     sorry,
   }, 
   have f : ∀ x ∈ S, ∃ β ∈ val_ring K, (x ∈ val_ring K) = π^(Inf Q)* β,
-},
+},-/
     
     /-
     rw submodule.span_singleton_eq_range,
     have f : exists_mem_ne_zero_of_ne_bot h,-/
 end
 
+instance is_ed (K:Type*) [field K] [discrete_valuation_field K] : euclidean_domain (val_ring K) :=
+{
+  ..is_subring (val_ring K),
+}
 
 instance is_dvr (K:Type*) [field K] [discrete_valuation_field K] : discrete_valuation_ring (val_ring K) :=
-{
-  refine is_pir,
-  refine integral_domain (val_ring K),
-  
-}
 
 end discrete_valuation_field
 
