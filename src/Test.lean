@@ -4,6 +4,7 @@ import ring_theory.localization
 import tactic
 import order.bounded_lattice
 import algebra.field_power
+import order.conditionally_complete_lattice
 universe u
 
 class discrete_valuation_ring (R : Type u) [integral_domain R] [is_principal_ideal_ring R] :=
@@ -743,82 +744,110 @@ begin
 simp only [forall_prop_of_false, not_lt],
 end
 
-lemma ideal_is_unif_power (S : ideal (val_ring K)) : ∀ x ∈ S, ∃ n : ℕ, (n : with_top ℤ) ≤ v(x : K) := 
-begin
-intros,
-by_contradiction,
-simp at a,
-cases (with_top.cases) (v(x:K)),
-{
-  rw h at a,
-  simp at a,
-  exact a, 
-},
-{
-  cases h with n h,
-  cases n,
-  {
-    rw h at a,
-    specialize a n,
-    simp at a,
-    rw <-with_top.coe_nat at a,
-    norm_cast at a,
-    apply blah n,
-    simp at a,
-    rw [int.coe_nat_lt],
-    exact a,  
-  },
-  cases x,
-  unfold val_ring at x_property,
-  simp at x_property,
-  simp at h,
-  rw h at x_property,
-  norm_cast at x_property,
-  cases x_property,
-},
-end
+noncomputable instance : has_Inf ℕ :=
+⟨λs, if h : ∃n, n ∈ s then @nat.find (λn, n ∈ s) _ h else 0⟩
 
-lemma ideal_is_unique_unif_power (S : ideal (val_ring K)) (x ∈ S) : ∃! (n : ℤ), ((n : with_top ℤ) ≤ v(x : K) ∧ ∀ y ∈ S, ¬v(y:K) = ↑(n-1) ) := 
-begin
-cases ideal_is_unif_power S x H with m g,
-split,
-{
-  simp,
-  split,
-  split,
-  {
-    exact g,
-  },
-    
-  by_contradiction,
-  simp at a,
-  cases (with_top.cases) (v(x:K)),
-    {
-      rw h at a,
-      simp at a,
-      exact a, 
-    },
-    {
-      cases h with n h,
-      rw h at a,
-      norm_cast at a,
-      apply blah n,
-      exact a,    
-    },
+noncomputable instance : has_Sup ℕ :=
+⟨λs, if h : ∃n, ∀a∈s, a ≤ n then @nat.find (λn, ∀a∈s, a ≤ n) _ h else 0⟩
 
-
- sorry, 
-},
-end
-
-lemma is_pir (K:Type*) [field K] [discrete_valuation_field K] : is_principal_ideal_ring (val_ring K) :=
+lemma is_pir (hπ : π ∈ unif K) : is_principal_ideal_ring (val_ring K) :=
 begin
 split,
 rintros,
 split,
-simp,
-sorry,
+let Q := {n : ℕ | ∃ x ∈ S, (n : with_top ℤ) = v(x:K) },
+by_cases S = ⊥,
+{
+  rw h,
+  use 0,
+  apply eq.symm,
+  rw submodule.span_singleton_eq_bot,
+},
+{
+  use π^(Inf Q),
+  unfold val_ring,
+  simp,
+  rw val_nat_power,
+  rw val_unif_eq_one,
+  {
+    rw <-with_top.coe_one,
+    rw <-with_top.coe_nat,
+    rw <-with_top.coe_mul,
+    rw mul_one,
+    norm_cast,
+    simp,
+  },
+  exact hπ, 
+  apply unif_ne_zero,
+  exact hπ,
+  have g : ∃ x ∈ S, v(x : K) = ↑(Inf Q),
+  { 
+    have g' : Inf Q ∈ Q,
+    apply nat.Inf_mem,
+    change S ≠ ⊥ at h,
+    split,
+    have f : ∃ x ∈ S, v(x : K) ≠ ⊤,
+    {
+      sorry,
+    },
+    cases f with x f,
+    use x,
+    split,
+    simp at f,
+    exact f.left,
+    let n := v(x:K),
+    cases with_top.cases (v(x:K)),
+    {
+      rw h_1 at f,
+      cases f,
+      exfalso,
+      simp at f_h,
+      exact f_h,
+    }, 
+    {
+      have f' : ∃ m : ℕ, v(x : K) = (m : with_top ℤ),
+      {
+        cases h_1 with n h_1,
+        cases n,
+        {
+          use n_1,
+          simp_rw h_1,
+          simp,
+          rw <-with_top.coe_nat,
+          simp,
+        },
+        {
+          exfalso,
+          sorry,
+        },
+      },
+      cases f' with m f',
+      apply eq.symm,
+      
+      
+       
+    } 
+      
+  },
+  have f : π^(Inf Q) ∈ set.range (λ s : S, (s : K)),
+  {
+    sorry,
+  }, 
+  have f : ∀ x ∈ S, ∃ β ∈ val_ring K, (x ∈ val_ring K) = π^(Inf Q)* β,
+},
+    
+    /-
+    rw submodule.span_singleton_eq_range,
+    have f : exists_mem_ne_zero_of_ne_bot h,-/
 end
+
+
+instance is_dvr (K:Type*) [field K] [discrete_valuation_field K] : discrete_valuation_ring (val_ring K) :=
+{
+  refine is_pir,
+  refine integral_domain (val_ring K),
+  
+}
 
 end discrete_valuation_field
 
@@ -918,4 +947,85 @@ begin
     },
   apply f1,  
   sorry,
+end -/
+/-lemma ideal_is_unif_power (S : ideal (val_ring K)) : ∀ x ∈ S, ∃ n : ℕ, (n : with_top ℤ) ≤ v(x : K) ∧ v(x:K) ≠ ↑(n-1) := 
+begin
+intros,
+by_contradiction,
+simp at a,
+cases (with_top.cases) (v(x:K)),
+{
+  rw h at a,
+  simp at a,
+  exact a, 
+},
+{
+  cases h with n h,
+  cases n,
+  {
+    rw h at a,
+    specialize a n,
+    simp at a,
+    rw <-with_top.coe_nat at a,
+    norm_cast at a,
+    simp at a,
+    rw <-with_top.coe_nat at a,
+    norm_cast at a,
+    simp at a,
+    sorry,  
+  },
+  cases x,
+  unfold val_ring at x_property,
+  simp at x_property,
+  simp at h,
+  rw h at x_property,
+  norm_cast at x_property,
+  cases x_property,
+},
+end
+
+lemma ideal_is_unique_unif_power (S : ideal (val_ring K)) : ∀ x ∈ S, ∃! (n : ℕ), (((n : with_top ℤ) ≤ v(x : K) ∧ ¬v(x:K) = ↑(n-1)) ∧ ∃ y ∈ S, v(y:K) = (n : with_top ℤ) ) := 
+begin
+intros,
+cases ideal_is_unif_power S x H with m g,
+split,
+{
+  split,
+  split,
+  {
+    exact g,
+  },
+  {
+    contrapose g,
+    simp at g,
+    simp,
+    rw g,
+    rw <-with_top.coe_nat,
+    rw <-with_top.coe_nat,
+    sorry,
+  },
+  {
+    rintros,
+    contrapose a,
+    simp,
+    rintros,
+  },
+  
+  cases (with_top.cases) (v(x:K)),
+    {
+      rw h at a,
+      simp at a,
+      exact a, 
+    },
+    {
+      cases h with n h,
+      rw h at a,
+      norm_cast at a,
+      apply blah n,
+      exact a,    
+    },
+
+
+ sorry, 
+},
 end -/
