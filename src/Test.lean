@@ -893,7 +893,13 @@ split,
   },
 },
 {
+  rw submodule.mem_span,
   rintros,
+  specialize a S,
+  apply a,
+  
+ /- rw <-ideal.span_le,
+  unfold ideal.span, -/
   have f : ∃ z ∈ S, v(z : K) = ↑(Inf Q),
   {
     have f' : ∃ x ∈ S, v(x : K) ≠ ⊤,
@@ -942,11 +948,43 @@ split,
   rw <-g at f,
   simp at f,
   cases f,
+/-
+  rw <-submodule.span_singleton_le_iff_mem at f_left,
+  refine le_trans _ f_left,
+  have l : submodule.span (val_ring K) {π^(Inf Q)} ≤ submodule.span (val_ring K) {z},
+  {
+    sorry,
+  },
+  convert l using 2,-/
+  
+
   rw val_eq_iff_asso at f_right,
   {
     cases f_right with w f_1,
     cases f_1 with f_1 f_2,
     cases f_2 with f_2 f_3,
+    rw set.singleton_subset_iff,
+    simp only [submodule.mem_coe],
+    rw <-submodule.span_eq S,
+    
+    rw submodule.smul_mem_iff w,  
+    
+     
+
+     have k : (z:K) ∣ π^(Inf Q),
+    split,
+    exact eq.symm f_3,
+    rw submodule.mem_span_singleton at a,
+    cases a with y a,
+    simp at a,
+    rw <-a,
+    rw <-submodule.span_singleton_le_iff_mem at f_left,
+    rw <-submodule.span_singleton_le_iff_mem,
+    have l : submodule.span (val_ring K) {π^n} ≤ submodule.span (val_ring K) {z},
+    {
+      sorry,
+    },
+    rw <-ideal.mem_span_singleton at k,
     sorry,
   },
   simp,
@@ -1072,11 +1110,14 @@ by_cases S = ⊥,
     have f : exists_mem_ne_zero_of_ne_bot h,-/
 end
 
-instance is_dvr (K:Type*) [field K] [discrete_valuation_field K] : discrete_valuation_ring (val_ring K) :=
-
 end discrete_valuation_field
 
 end discrete_valuation_ring
+
+/-lemma ideal_in (hπ : π ∈ unif K) (z : val_ring K) (S : ideal(val_ring K)) (hz : z ∈ S) (nzx : z ≠ 0) : ∃ n : ℕ, v(z:K) = n ∧ ⟨π ^n, _⟩ ∈ S :=
+begin
+sorry,
+end-/
 
 /-
 instance (K:Type*) [field K] [discrete_valuation_field K] : discrete_valuation_ring {x : K | 0 ≤ v(x) } := 
