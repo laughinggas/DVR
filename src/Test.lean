@@ -901,16 +901,24 @@ split,
   {
     have f' : ∃ x ∈ S, v(x : K) ≠ ⊤,
     { 
-      /-split,
-      rw contra_non_zero_one,
-      
       contrapose h,
       simp at h,
-      specialize h x,
       simp,
-      
-      rw mul at h,-/
-      sorry,
+      apply ideal.ext,
+      rintros,
+      simp only [submodule.mem_bot],
+      split,
+      rintros,
+      specialize h x_1,
+      simp at h,
+      have q : v(x_1 : K) = ⊤,
+      apply h,
+      exact a_1,
+      rw non_zero at q,
+      exact subtype.ext q,
+      rintros,
+      rw a_1,
+      simp,
     },
     have p : Inf Q ∈ Q,
     {
