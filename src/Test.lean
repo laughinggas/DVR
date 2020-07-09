@@ -350,6 +350,24 @@ cases with_top.cases b,
 }
 end
 
+lemma with_top.add_le_happens (a b c : with_top ℤ) (ne_top : a ≠ ⊤) : b ≤ c ↔ a + b ≤ a+c :=
+begin
+ rcases(with_top.cases a) with rfl | ⟨a, rfl⟩;
+ rcases(with_top.cases b) with rfl | ⟨b, rfl⟩;
+ rcases(with_top.cases c) with rfl | ⟨n, rfl⟩;
+ try {simp},
+ simp at ne_top,
+ assumption,
+ simp at ne_top,
+ exfalso,
+ assumption,
+ rw <-with_top.coe_add,
+ apply with_top.coe_ne_top,
+ repeat{rw <-with_top.coe_add,},
+ rw with_top.coe_le_coe,
+ simp,
+end
+
 lemma with_top.distrib (a b c : with_top ℤ) (na : a ≠ ⊤) (nb : b ≠ ⊤) (nc : c ≠ ⊤) : (a + b)*c = a*c + b*c :=
 begin
   rcases(with_top.cases a) with rfl | ⟨a, rfl⟩;
@@ -744,6 +762,40 @@ begin
 simp only [forall_prop_of_false, not_lt],
 end
 
+lemma val_is_nat (hπ : π ∈ unif K) (x : val_ring K) (nzx : x ≠ 0) : ∃ m : ℕ, v(x:K) = ↑m :=
+begin
+cases with_top.cases (v(x:K)),
+{
+  rw h,
+  simp,
+  rw non_zero at h,
+  apply nzx,
+  exact subtype.eq h,
+},
+{
+  cases h with n h,
+  cases n,
+  {
+    use n,
+    simp_rw h,
+    simp,
+    rw <-with_top.coe_nat,
+    simp,
+  },
+  {
+    have H : 0 ≤ v(x:K),
+    exact x.2,
+    rw h at H,
+    norm_cast at H,
+    exfalso,
+    contrapose H,
+    simp,
+    tidy,
+    exact int.neg_succ_lt_zero n,
+  },
+},
+end
+
 lemma is_pir (hπ : π ∈ unif K) : is_principal_ideal_ring (val_ring K) :=
 begin
 split,
@@ -757,22 +809,37 @@ by_cases S = ⊥,
   rw submodule.span_singleton_eq_bot,
 },
 let Q := {n : ℕ | ∃ x ∈ S, (n : with_top ℤ) = v(x:K) },
-use π^(Inf Q),
-unfold val_ring,
-simp,
-rw val_nat_power,
-rw val_unif_eq_one,
+have g : v(π ^(Inf Q)) = ↑(Inf Q),
 {
-    rw <-with_top.coe_one,
-    rw <-with_top.coe_nat,
-    rw <-with_top.coe_mul,
-    rw mul_one,
-    norm_cast,
-    simp,
+  rw val_nat_power,
+  rw val_unif_eq_one,
+  rw <-with_top.coe_one,
+  rw <-with_top.coe_nat,
+  rw <-with_top.coe_mul,
+  rw mul_one,
+  exact hπ,
+  apply unif_ne_zero,
+  exact hπ,
+},  
+have nz : π^(Inf Q) ≠ 0,
+{
+  by_contradiction,
+  simp at a,
+  apply_fun v at a,
+  rw g at a,
+  rw val_zero at a,
+  apply with_top.nat_ne_top (Inf Q),
+  exact a, 
 },
-exact hπ,
-apply unif_ne_zero,
-exact hπ,
+use π^(Inf Q),
+{
+  unfold val_ring,
+  simp,
+  rw g,
+  rw <-with_top.coe_nat,
+  norm_cast,
+  norm_num,
+},
 apply submodule.ext,
 rintros,
 split,
@@ -781,31 +848,97 @@ split,
   rw submodule.mem_span_singleton,
   use (x * (π^(Inf Q))⁻¹),
   {
-    sorry,
+    unfold val_ring,
+    simp,
+    rw mul,
+    by_cases x = 0,
+    {
+      rw h,
+      simp,
+    },
+    rw with_top.add_le_happens (v(π^(Inf Q))),
+    norm_num,
+    assoc_rw add_comm,
+    assoc_rw val_inv,
+    simp,
+    rw g,
+    have f' : ∃ m : ℕ, v(x:K) = ↑m,
+    {
+      apply val_is_nat,
+      use hπ,
+      exact h,
+    },
+    cases f' with m f',
+    rw f',
+    rw <-with_top.coe_nat,
+    rw <-with_top.coe_nat,
+    norm_cast,
+    have h' : m ∈ Q,
+    {
+      split,
+      simp,
+      split,
+      use a,
+      use [eq.symm f'],
+    },
+    
+    by { rw [nat.Inf_def ⟨m, h'⟩], exact nat.find_min' ⟨m, h'⟩ h' },
+    rw g,
+    apply with_top.nat_ne_top,
   },
   {
     tidy,
-    have nz : π^(Inf Q) ≠ 0,
-    {
-      sorry,
-    },
     assoc_rw inv_mul_cancel nz,
     simp,    
   },
 },
 {
   rintros,
-  rw submodule.mem_span_singleton at a,
-  cases a with y a,
   have f : ∃ z ∈ S, v(z : K) = ↑(Inf Q),
   {
-    sorry,
+    have f' : ∃ x ∈ S, v(x : K) ≠ ⊤,
+    {
+      sorry,
+    },
+    have p : Inf Q ∈ Q,
+    {
+      apply nat.Inf_mem,
+      contrapose h,
+      simp,
+      by_contradiction,
+      cases f' with x' f',
+      have f_1 : ∃ m : ℕ, v(x':K) = ↑(m),
+      {
+        sorry,
+      },
+      cases f_1 with m' f_1,
+      have g' : m' ∈ Q,
+      {
+        simp,
+        use x',
+        simp,
+        split,
+        cases f',
+        assumption,
+        exact eq.symm f_1,
+      },
+      apply h,
+      use m',
+      apply g',
+    },
+    simp at p,
+    cases p with z p,
+    cases p,
+    use z,
+    cases p_left,
+    assumption,
+    split,
+    cases p_left,
+    assumption,
+    simp,
+    exact eq.symm p_right,
   },
   cases f with z f,
-  have g : v(π ^(Inf Q)) = ↑(Inf Q),
-  {
-    sorry,
-  },
   rw <-g at f,
   simp at f,
   cases f,
@@ -818,13 +951,23 @@ split,
   },
   simp,
   {
-    sorry,
+    unfold val_ring,
+    simp,
+    rw g,
+    rw <-with_top.coe_nat,
+    norm_cast,
+    simp,
   },
   {
-    sorry,
+    rw g at f_right,
+    contrapose f_right,
+    simp at f_right,
+    rw <-non_zero at f_right,
+    rw f_right,
+    simp,
   },
   {
-    sorry,
+    exact nz,
   },
 },
 /-let R := {n : ℕ | π^n ∈ set.range (λ s : S, (s : K))},
@@ -928,11 +1071,6 @@ by_cases S = ⊥,
     rw submodule.span_singleton_eq_range,
     have f : exists_mem_ne_zero_of_ne_bot h,-/
 end
-
-instance is_ed (K:Type*) [field K] [discrete_valuation_field K] : euclidean_domain (val_ring K) :=
-{
-  ..is_subring (val_ring K),
-}
 
 instance is_dvr (K:Type*) [field K] [discrete_valuation_field K] : discrete_valuation_ring (val_ring K) :=
 
