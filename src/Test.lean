@@ -897,13 +897,19 @@ split,
   rintros,
   specialize a S,
   apply a,
-  
- /- rw <-ideal.span_le,
-  unfold ideal.span, -/
   have f : ∃ z ∈ S, v(z : K) = ↑(Inf Q),
   {
     have f' : ∃ x ∈ S, v(x : K) ≠ ⊤,
-    {
+    { 
+      /-split,
+      rw contra_non_zero_one,
+      
+      contrapose h,
+      simp at h,
+      specialize h x,
+      simp,
+      
+      rw mul at h,-/
       sorry,
     },
     have p : Inf Q ∈ Q,
@@ -956,16 +962,6 @@ split,
   rw <-g at f,
   simp at f,
   cases f,
-/-
-  rw <-submodule.span_singleton_le_iff_mem at f_left,
-  refine le_trans _ f_left,
-  have l : submodule.span (val_ring K) {π^(Inf Q)} ≤ submodule.span (val_ring K) {z},
-  {
-    sorry,
-  },
-  convert l using 2,-/
-  
-
   rw val_eq_iff_asso at f_right,
   {
     cases f_right with w f_1,
@@ -974,30 +970,8 @@ split,
     rw set.singleton_subset_iff,
     simp only [submodule.mem_coe],
     simp_rw [← f_3],
-    sorry, 
-
-    rw f_4 at f_left,
-    rw <-submodule.span_eq S,
-    
-    rw submodule.smul_mem_iff w,  
-    
-     
-
-     have k : (z:K) ∣ π^(Inf Q),
-    split,
-    exact eq.symm f_3,
-    rw submodule.mem_span_singleton at a,
-    cases a with y a,
-    simp at a,
-    rw <-a,
-    rw <-submodule.span_singleton_le_iff_mem at f_left,
-    rw <-submodule.span_singleton_le_iff_mem,
-    have l : submodule.span (val_ring K) {π^n} ≤ submodule.span (val_ring K) {z},
-    {
-      sorry,
-    },
-    rw <-ideal.mem_span_singleton at k,
-    sorry,
+    change z * ⟨w,f_1⟩ ∈ S,
+    apply ideal.mul_mem_right S f_left,
   },
   simp,
   {
@@ -1020,106 +994,6 @@ split,
     exact nz,
   },
 },
-/-let R := {n : ℕ | π^n ∈ set.range (λ s : S, (s : K))},
-by_cases S = ⊥,
-{
-  rw h,
-  use 0,
-  apply eq.symm,
-  rw submodule.span_singleton_eq_bot,
-},
-{
-  use π^(Inf Q),
-  unfold val_ring,
-  simp,
-  rw val_nat_power,
-  rw val_unif_eq_one,
-  {
-    rw <-with_top.coe_one,
-    rw <-with_top.coe_nat,
-    rw <-with_top.coe_mul,
-    rw mul_one,
-    norm_cast,
-    simp,
-  },
-  exact hπ, 
-  apply unif_ne_zero,
-  exact hπ,
-  have f : ∃ x ∈ S, v(x : K) ≠ ⊤,
-    {
-      sorry,
-    },
-  have g : ∃ x ∈ S, v(x : K) = ↑(Inf Q),
-  { 
-    have g' : Inf Q ∈ Q,
-    apply nat.Inf_mem,
-    change S ≠ ⊥ at h,
-    cases f with x f,
-    use x,
-    split,
-    simp at f,
-    exact f.left,
-    let n := v(x:K),
-    cases with_top.cases (v(x:K)),
-    {
-      rw h_1 at f,
-      cases f,
-      exfalso,
-      simp at f_h,
-      exact f_h,
-    }, 
-    {
-      have f' : ∃ m : ℕ, v(x : K) = (m : with_top ℤ),
-      {
-        cases h_1 with n h_1,
-        cases n,
-        {
-          use n_1,
-          simp_rw h_1,
-          simp,
-          rw <-with_top.coe_nat,
-          simp,
-        },
-        {
-          exfalso,
-          sorry,
-        },
-      },
-      cases f' with m f',
-      apply eq.symm,
-      sorry,
-      
-       
-    }, 
-    sorry,
-    simp at g',
-    cases g' with y g',
-    use y,
-    cases g',
-    cases g'_left,
-    exact g'_left_w,
-    split,
-    cases g',
-    cases g'_left,
-    exact g'_left_h,
-    cases g',
-    cases g'_left,
-    simp,
-    exact eq.symm g'_right,  
-  },
-  have f : π^(Inf Q) ∈ set.range (λ s : S, (s : K)),
-  {
-    simp,
-    cases g with x g,
-    cases g,
-    sorry,
-  }, 
-  have f : ∀ x ∈ S, ∃ β ∈ val_ring K, (x ∈ val_ring K) = π^(Inf Q)* β,
-},-/
-    
-    /-
-    rw submodule.span_singleton_eq_range,
-    have f : exists_mem_ne_zero_of_ne_bot h,-/
 end
 
 end discrete_valuation_field
