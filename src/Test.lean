@@ -136,18 +136,9 @@ end
 
 lemma val_minus_one_is_zero : v((-1) : K) = 0 :=
 begin
-have f : (-1:K)*(-1:K) = (1 : K),
-simp,
-have g : v((-1 : K)*(-1 : K)) = v(1 : K),
-simp,
-have k : v((-1 : K)*(-1 : K)) = v(-1 : K) + v(-1 : K),
-{
-  apply mul,
-},
-rw k at g,
-rw val_one_eq_zero at g,
-rw <-sum_zero_iff_zero,
-exact g,
+have f : (-1:K)*(-1:K) = (1 : K) := by simp,
+apply_fun v at f,
+rwa [mul, val_one_eq_zero, sum_zero_iff_zero] at f,
 end
 
 @[simp] lemma val_zero : v(0:K) = ⊤ :=
@@ -155,58 +146,13 @@ begin
 rw non_zero,
 end
 
-
-lemma with_top.transitivity (a b c : with_top ℤ) : a ≤ b -> b ≤ c -> a ≤ c :=
+lemma with_top.transitivity {a b c : with_top ℤ} : a ≤ b -> b ≤ c -> a ≤ c :=
 begin
-rintros,
-cases(with_top.cases c) with h1 h2,
-  {
-    rw h1,
-    simp,
-  },
-  {
-    cases h2 with n h2,
-    cases(with_top.cases a) with k1 k2,
-    {
-      rw [k1, h2],
-      rw k1 at a_1,
-      rw h2 at a_2,
-      cases(with_top.cases b) with l1 l2,
-      {
-        rw l1 at a_2,
-        exact a_2,
-      },
-      {
-        cases l2 with m l2,
-        rw l2 at a_1,
-        exfalso,
-        apply with_top.not_top_le_coe m,
-        exact a_1,
-      },
-    },
-    {
-      cases k2 with m k2,
-      cases(with_top.cases b) with l1 l2,
-      {
-        rw [l1,h2] at a_2,
-        exfalso,
-        apply with_top.not_top_le_coe n,
-        exact a_2,
-      },
-      {
-        cases l2 with k l2,
-        rw [k2,l2] at a_1,
-        rw [l2,h2] at a_2,
-        rw [k2,h2],
-        rw with_top.coe_le_coe,
-        rw with_top.coe_le_coe at a_1,
-        rw with_top.coe_le_coe at a_2,
-        transitivity k,
-        exact a_1,
-        exact a_2,
-      },
-    },  
-  },
+rcases(with_top.cases a) with rfl | ⟨a, rfl⟩;
+rcases(with_top.cases b) with rfl | ⟨b, rfl⟩;
+rcases(with_top.cases c) with rfl | ⟨c, rfl⟩;
+try {simp},
+exact le_trans,
 end 
 
 def val_ring (K : Type*) [field K] [discrete_valuation_field K] := { x : K | 0 ≤ v x } 
@@ -220,19 +166,12 @@ instance (K : Type*) [field K] [discrete_valuation_field K] : is_add_subgroup (v
   add_mem := begin
             unfold val_ring,
             simp only [set.mem_set_of_eq],
-            rintros,
-            have g : min (v(a)) (v(b)) ≤ v(a + b),
-            {
-              apply add,
-            },
+            rintros a b h1 h2,
+            have g : min (v(a)) (v(b)) ≤ v(a + b) := by apply add,
             rw min_le_iff at g,
             cases g,
-            {
-              exact with_top.transitivity _ _ _ a_1 g,
-            },
-            {
-              exact with_top.transitivity _ _ _ a_2 g,
-            },
+            exact with_top.transitivity h1 g,
+            exact with_top.transitivity h2 g,
             end,
   neg_mem := begin
             unfold val_ring,
@@ -253,10 +192,10 @@ instance (K:Type*) [field K] [discrete_valuation_field K] : is_submonoid (val_ri
             end,
   mul_mem := begin
             unfold val_ring,
-            rintros,
-            simp at a_1 a_2 ⊢,
+            rintros a b ha hb,
+            simp at ha hb ⊢,
             rw mul,
-            apply add_nonneg' a_1 a_2,
+            apply add_nonneg' ha hb,
             end, }   
 
 instance valuation_ring (K:Type*) [field K] [discrete_valuation_field K] : is_subring (val_ring K) :=
@@ -278,75 +217,21 @@ end
 
 lemma unif_ne_zero (hπ : π ∈ unif K) : π ≠ 0 :=
 begin
-simp,
       unfold unif at hπ,
       simp at hπ,
       intro g,
-      rw <-non_zero at g,
-      rw hπ at g,
+      rw [<-non_zero, hπ] at g,
       cases g,
 end 
 
 lemma with_top.add_happens (a b c : with_top ℤ) (ne_top : a ≠ ⊤) : b=c ↔ a+b = a+c :=
 begin
-cases with_top.cases a,
-{
-  exfalso,
-  apply ne_top,
-  exact h,
-},
-cases h with n h,
-rw h,
-split,
-{
-  rintros,
-  rw a_1,
-},
-cases with_top.cases b,
-{
-  rw h_1,
-  rw with_top.add_top,
-  rintros,
-  have b_1 : ↑n + c = ⊤,
-  exact eq.symm a_1,
-  rw with_top.add_eq_top at b_1,
-  cases b_1,
-  {
-    exfalso,
-    apply with_top.coe_ne_top,
-    {
-      exact b_1,
-    },
-  },
-  exact eq.symm b_1,
-},
-{
-  cases h_1 with m h_1,
-  rw h_1,
-  cases with_top.cases c,
-  {
-    rw h_2,
-    rintros,
-    rw with_top.add_top at a_1,
-    rw with_top.add_eq_top at a_1,
-    cases a_1,
-    {
-      exfalso,
-      apply with_top.coe_ne_top,
-      exact a_1,
-    },
-    {
-      exact a_1,
-    },
-  },
-  cases h_2 with l h_2,
-  rw h_2,
-  rintros,
-  norm_cast,
-  norm_cast at a_1,
-  simp at a_1,
-  assumption,
-}
+rcases (with_top.cases a) with rfl | ⟨a, rfl⟩;
+rcases (with_top.cases b) with rfl | ⟨b, rfl⟩;
+rcases (with_top.cases c) with rfl | ⟨c, rfl⟩;
+try{tauto},
+norm_cast, 
+simp, 
 end
 
 lemma with_top.add_le_happens (a b c : with_top ℤ) (ne_top : a ≠ ⊤) : b ≤ c ↔ a + b ≤ a+c :=
@@ -354,112 +239,59 @@ begin
  rcases(with_top.cases a) with rfl | ⟨a, rfl⟩;
  rcases(with_top.cases b) with rfl | ⟨b, rfl⟩;
  rcases(with_top.cases c) with rfl | ⟨n, rfl⟩;
- try {simp},
- simp at ne_top,
- assumption,
- simp at ne_top,
- exfalso,
- assumption,
- rw <-with_top.coe_add,
- apply with_top.coe_ne_top,
- repeat{rw <-with_top.coe_add,},
- rw with_top.coe_le_coe,
+ try {tauto},
+ {
+   norm_cast,
+   rw [with_top.add_top, classical.iff_iff_not_or_and_or_not],
+   simp,
+ },
+ norm_cast, 
  simp,
 end
 
-lemma with_top.distrib (a b c : with_top ℤ) (na : a ≠ ⊤) (nb : b ≠ ⊤) (nc : c ≠ ⊤) : (a + b)*c = a*c + b*c :=
+lemma with_top.distrib {a b c : with_top ℤ} (na : a ≠ ⊤) (nb : b ≠ ⊤) (nc : c ≠ ⊤) : (a + b)*c = a*c + b*c :=
 begin
   rcases(with_top.cases a) with rfl | ⟨a, rfl⟩;
   rcases(with_top.cases b) with rfl | ⟨b, rfl⟩;
-  rcases(with_top.cases c) with rfl | ⟨n, rfl⟩;
-  try {simp},
-  repeat
-  {
-  simp at na,
-  exfalso,
-  exact na,
-  },
-  {
-  simp at nb,
-  exfalso,
-  exact nb,
-  },
-  {
-  simp at nc,
-  exfalso,
-  exact nc,
-  },
-  rw <-with_top.coe_add,
-  repeat {rw <-with_top.coe_mul},
-  rw <-with_top.coe_add,
-  rw with_top.coe_eq_coe,
-  rw right_distrib,
+  rcases(with_top.cases c) with rfl | ⟨c, rfl⟩;
+  try {tauto},
+  norm_cast,
+  rw add_mul,
 end
 
 lemma one_mul (a : with_top ℤ) : 1 * a = a :=
 begin
-cases (with_top.cases) a with a ha,
-{
-  rw a,
-  simp,
-},
-{
-  cases ha with n ha,
-  rw ha,
-  norm_cast,
-  simp,
-}
-end
-
-lemma nat_ne_top (n :ℕ) : (n : with_top ℤ) ≠ ⊤ := 
-begin
+rcases (with_top.cases a) with rfl | ⟨a, rfl⟩;
+try{norm_cast, simp},
 simp,
 end
 
 lemma val_inv (x : K) (nz : x ≠ 0) : v(x) + v(x)⁻¹ = 0 :=
 begin
-rw <- mul,
-rw mul_inv_cancel,
-{
-  rw val_one_eq_zero,
-},
-exact nz,
+rw [<- mul, mul_inv_cancel, val_one_eq_zero], 
+assumption,
 end
 
 lemma with_top.sub_add_eq_zero (n : ℕ) : ((-n : ℤ) : with_top ℤ) + (n : with_top ℤ) = 0 :=
 begin
-rw <-with_top.coe_nat,
-rw <-with_top.coe_add,
+rw [<-with_top.coe_nat, <-with_top.coe_add],
 simp only [add_left_neg, int.nat_cast_eq_coe_nat, with_top.coe_zero],
 end
 
 lemma with_top.add_sub_eq_zero (n : ℕ) : (n : with_top ℤ) + ((-n : ℤ) : with_top ℤ) = 0 :=
 begin
-rw <-with_top.coe_nat,
-rw <-with_top.coe_add,
-simp only [add_right_neg, int.nat_cast_eq_coe_nat, with_top.coe_zero],
+rw [add_comm, with_top.sub_add_eq_zero],
 end
 
 lemma contra_non_zero (x : K) (n : ℕ) (nz : n ≠ 0) : v(x^n) ≠ ⊤ ↔ x ≠ 0 :=
 begin
 split,
+repeat{contrapose, simp, intro},
 {
-  contrapose,
-  simp,
-  intro,
-  rw a,
-  rw zero_pow',
-  {
-    exact val_zero,
-  },
-  {
-    exact nz,
-  },
+  rw [a, zero_pow', val_zero],
+  exact nz,
 },
 {
-  contrapose,
-  simp,
-  intro,
   rw non_zero at a,
   contrapose a,
   apply pow_ne_zero,
@@ -467,23 +299,11 @@ split,
 },
 end
 
-
 lemma contra_non_zero_one (x : K) : v(x) ≠ ⊤ ↔ x ≠ 0 := 
 begin
-split,
-{
-  intro,
-  rw <-pow_one x at a,
-  rw contra_non_zero x 1 at a,
-  exact a,
-  simp,
-},
-{
-  contrapose,
-  simp,
-  rw non_zero,
-  simp,
-},
+have g := contra_non_zero x 1,
+simp at g,
+exact g,
 end
 
 lemma val_nat_power (a : K) (nz : a ≠ 0) : ∀ n : ℕ, v(a^n) = (n : with_top ℤ)*v(a) :=
@@ -491,24 +311,17 @@ begin
 rintros,
 induction n with d hd,
 {
-  rw pow_zero,
-  rw val_one_eq_zero,
+  rw [pow_zero, val_one_eq_zero],
   simp,
 },
 {
-  rw nat.succ_eq_add_one,
-  rw pow_succ',
-  rw mul,
-  rw hd,
+  rw [nat.succ_eq_add_one, pow_succ', mul, hd],
   norm_num,
-  rw with_top.distrib,
-  rw one_mul,
-  apply nat_ne_top,
+  rw [with_top.distrib, one_mul],
+  apply with_top.nat_ne_top,
   apply with_top.one_ne_top,
-  intro,
-  rw non_zero at a_1,
-  apply nz,
-  exact a_1,   
+  rw contra_non_zero_one,
+  exact nz,
 }
 end
 
@@ -517,8 +330,7 @@ begin
 rintros,
 cases n,
 {
-  rw fpow_of_nat,
-  rw val_nat_power,
+  rw [fpow_of_nat, val_nat_power],
   {
     simp only [int.of_nat_eq_coe],
     rw <-with_top.coe_nat,
@@ -528,27 +340,14 @@ cases n,
 },
 {
   simp only [fpow_neg_succ_of_nat],
-  rw nat.succ_eq_add_one,
-  rw with_top.add_happens (v (a ^ (n + 1))) (v (a ^ (n + 1))⁻¹) (↑-[1+ n] * v a),
-  {
-    rw val_inv,
-    {
-      rw val_nat_power,
+  rw [nat.succ_eq_add_one, with_top.add_happens (v (a ^ (n + 1))) (v (a ^ (n + 1))⁻¹) (↑-[1+ n] * v a), val_inv, val_nat_power],
       {
         simp only [nat.cast_add, nat.cast_one],
         rw <-with_top.distrib,
         {
           simp only [zero_eq_mul],
           left,
-          rw int.neg_succ_of_nat_coe',
-          rw sub_eq_add_neg,
-          rw with_top.coe_add,
-          rw add_comm (↑-↑n),
-          rw <-add_assoc,
-          rw add_comm,
-          rw add_assoc,
-          rw <-with_top.coe_one,
-          rw <-with_top.coe_add,
+          rw [int.neg_succ_of_nat_coe', sub_eq_add_neg, with_top.coe_add, add_comm (↑-↑n), <-add_assoc, add_comm, add_assoc, <-with_top.coe_one, <-with_top.coe_add], 
           simp,
           rw with_top.sub_add_eq_zero,
           },
@@ -556,34 +355,22 @@ cases n,
             norm_cast,
             apply with_top.nat_ne_top,
           },
+          simp,        
           {
-            simp,        
-          },
-          {
-            intro,
-            simp_rw [non_zero, nz] at a_1,
-            exact a_1,
+            intro f,
+            simp_rw [non_zero, nz] at f,
+            exact f,
           },
       },
+      exact nz,
       {
-        exact nz,
-      },
-    },
-    {
       apply pow_ne_zero,
       exact nz,
-    },  
-  },
-  {
-    rw contra_non_zero,
-    {
+      },
+      rw contra_non_zero,
       exact nz,
-    },
-    {
       simp,
-    }, 
   },
-},
 end
 
 lemma unit_iff_val_zero (α : K) (hα : α ∈ val_ring K) (nzα : α ≠ 0) : v (α) = 0 ↔ ∃ β ∈ val_ring K, α * β = 1 := 
@@ -594,45 +381,29 @@ split,
   use α⁻¹,
   split,
   {
-    {
-      unfold val_ring,
-      simp,
-      rw <-with_top.coe_zero,
-      rw with_top.coe_le_iff,
-      rintros,
-      rw with_top.add_happens (v(α)) _ _ at a_1,
-      {
-        rw val_inv at a_1,
-        {
-          rw a at a_1,
-          simp only [with_top.zero_eq_coe, zero_add] at a_1,
-          rw a_1,
-        },
-        exact nzα,
-      },
-      simp_rw [contra_non_zero_one],
-      exact nzα,
-    },
-  },
-  {
-    rw mul_inv_cancel,
+    unfold val_ring,
+    simp,
+    rw [<-with_top.coe_zero, with_top.coe_le_iff],
+    rintros b f,
+    rw [with_top.add_happens (v(α)) _ _, val_inv, a] at f,
+    simp only [with_top.zero_eq_coe, zero_add] at f,
+    rw f,
+    exact nzα,
+    simp_rw [contra_non_zero_one],
     exact nzα,
   },
+  rw mul_inv_cancel,
+  exact nzα,
 },
 {
   rintros,
   cases a with b a,
   simp at a,
-  cases a,
-  unfold val_ring at a_left,
-  simp at a_left,
-  have f : v((α)*(b)) = v(1:K),
-  {
-    rw a_right,
-  },
-  rw mul at f,
-  rw val_one_eq_zero at f,
-  rw add_eq_zero_iff' at f,
+  cases a with a1 a2,
+  unfold val_ring at a1,
+  simp at a1,
+  have f : v((α)*(b)) = v(1:K) := by rw a2,
+  rw [mul, val_one_eq_zero, add_eq_zero_iff'] at f,
   {
     cases f,
     exact f_left,
@@ -642,9 +413,7 @@ split,
     simp at hα,
     exact hα,
   },
-  {
-    exact a_left,
-  },
+  exact a1,
 },
 end
 
@@ -660,8 +429,7 @@ use (x⁻¹*y),
     rw mul,
     rw with_top.add_happens (v(x⁻¹)) _ _ at a,
     {
-      rw add_comm at a,
-      rw val_inv at a,
+      rw [add_comm, val_inv] at a,
       {
         rw <-a,
         norm_num,
@@ -671,11 +439,8 @@ use (x⁻¹*y),
       exact nzx,
     },
     {
-      intro f,
-      rw non_zero at f,
-      simp at f,
-      apply nzx,
-      exact f,
+      rw contra_non_zero_one,
+      simp [nzx],
     },
   },
 },
@@ -683,13 +448,12 @@ use (x⁻¹*y),
   rintros,
   cases a with z a,
   simp at a,
-  cases a,
-  cases a_right with a_1 a_2,
-  apply_fun v at a_2,
-  rw mul at a_2,
-  rw a_1 at a_2,
-  simp at a_2,
-  exact a_2,
+  cases a with a1 a2,
+  cases a2 with a2 a3,
+  apply_fun v at a3,
+  rw [mul,a2] at a3,
+  simp at a3,
+  exact a3,
 },
 end
 

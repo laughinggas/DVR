@@ -1,0 +1,628 @@
+\documentclass[10pt, a4paper]{article}
+\pdfoutput=1
+
+\usepackage[utf8x]{inputenc}
+\usepackage[LGR, T1]{fontenc}
+\PrerenderUnicode{ä}
+\PrerenderUnicode{é}
+
+\usepackage{amsmath, amsthm, amsfonts, amssymb}
+\usepackage{textcomp}
+\usepackage{textgreek}
+\usepackage{upgreek}
+\usepackage{mathrsfs}
+
+\usepackage[english]{babel}
+
+\usepackage{listings}
+\def\lstlanguagefiles{main.tex}
+\lstset{language=lean}
+
+\title{Lean}
+\author{ashvni.n20 }
+\date{July 2020}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\section{Introduction}
+I am going to describe how I defined discrete valuation rings in Lean. The real challenge lies in making Lean understand what may seem mathematically not too difficult to write on paper.
+
+\section{Brief introduction to Lean for mathematicians}
+Lean is an interactive theorem prover. This means that, based on a set of axioms(Peano's axioms), one can verify a proof of almost all theorems, using logic. To some extent, Lean is also an automated theorem prover, that is, it can construct proofs. The Lean project was launched by Leonardo de Moura at Microsoft Research Redmond
+in 2012. It is an ongoing, long-term effort, and much of the potential for automation
+will be realized only gradually over time. Lean is released under the Apache 2.0 license,
+a permissive open source license that permits others to use and extend the code and
+mathematical libraries freely. 
+
+\subsection{Type}
+Let us first understand what types are. Types are essentially sets, with the exception that a given element can belong to only one type. For example, a natural number, say $n$, is of type $\mathbb{N}$. It cannot be of type $\mathbb{Z}$. One can build types from existing types, such as $\mathbb{N} \times \mathbb{N}$, or $\mathbb{N} \to \mathbb{Z}$. \\
+
+Unless specified, Lean automatically infers the type of anything that is defined. For example, 
+
+\begin{lstlisting}
+let z := 0,
+ -- z : ℕ := 0
+\end{lstlisting}
+
+We shall discuss the let tactic in a while. Over here, I am using it to (locally) define $z$ to be 0. The -- can be used to put a comment line in the code. Alternatively, one may use /- and -/ at the beginning and end of the comment. I have commented the output that Lean shows. Lean infers that $z$ has type $\mathbb{N}$. \\
+
+\subsection{Definition}
+
+The command to make a definition is anti climactically definition. A definition looks like : 
+
+\begin{lstlisting}
+definition name [implicit argument] {explicit input} : Type := statement
+\end{lstlisting}
+
+The square brackets are put around implicit arguments, while round brackets are used for arguments that are to be explicitly provided. One may choose to not give the type explicitly, in which case Lean infers it. \\
+
+Assume that a field has been defined. As an example, we have :
+
+\begin{lstlisting}
+definition val := 0
+#check val -- val : ℕ
+
+definition (x : ℕ) := 0
+#check val -- val : ℕ → ℕ
+
+definition val (K: Type*) [field K] : K := 0
+#check val -- val : K
+
+definition val (x :ℕ) := 0
+#check val -- val : ℕ → ℕ
+
+definition val (K: Type*) [field K] (x :ℕ) : K := 0
+#check val -- val : ℕ → K
+\end{lstlisting}
+
+Note that Lean infers 0 to be of type $\mathbb{N}$, unless specified. $0 : K$ is just $0 : \mathbb{N}$ along with $0 \in K$. The latter fact is proved by a lemma named $has_zero$. Also, $K : Type*$ allows Lean to infer the type of $K$. $#check$ is used to print $val$. \\
+
+For a definition with multiple arguments, one may think of it as a function, with the domain being a product of the types of the arguments. For example, if there are $n$ arguments of type $A_i$ respectively, and the definition is of type $B$, then one may think of the definition as a function $\prod_i A_i \to B$, which is equivalent to $A_1 \to \dots A_{n-1} \to A_n \to B$. This shall play a crucial role when we define lemmas, and apply tactics to it. \\
+
+A way to have a definition in the local context is by using $let$. We have seen an example above.
+
+\subsection{Propositions and theorems}
+One particular type that is often used is Prop. This is one of the most critical aspects of understanding proof writing in Lean. All propositions are taken to be of type Prop. Say we have a lemma or proposition named $h$. Then $h$ is of type Prop, and a proof of $h$ is of type $h$. Thus, the type $h$ is empty if the proposition $h$ is false, and nonempty otherwise. All proofs of $h$ are equivalent, and the type $h$ can have at most a single element. Hence, to prove $h$, we need only construct a term of type $h$. \\
+
+We can now define the syntax of a theorem. Note that lemmas, corollaries and theorems have the same syntax, hence we shall use them interchangeably. In fact, it is the same syntax as definition. This makes sense, because, as explained above, the proof is an element of type being the statement of the theorem. As an example,
+
+\begin{lstlisting}
+lemma refl' (a : ℕ) : a = a :=
+begin
+sorry,
+end
+\end{lstlisting}
+
+$sorry$ changes the goal to solved. Since this is precisely the reflexive relation, the tactic refl solves the goal.\\
+
+Note that one may think of theorems as functions from the product of types of arguments to Prop.
+
+[Start from Pg 51] Subdivide into understanding the structures of Lean and doing the math proofs - tactics.
+
+\subsection{Variables}
+
+The $variables$ command allows us to construct variables which need not be defined repeatedly. The scope of variables is within the file. For example, I would like to fix throughout the file that $K$ is a field : 
+
+\begin{lstlisting}
+variables {K : Type*} [field K]
+\end{lstlisting}
+
+The curly braces tell Lean to keep the argument implicit, that is, Lean infers the argument. Square and curly brackets differ in the mechanism that Lean uses to infer the argument. \\
+
+\subsection{Import and namespaces}
+
+The first thing we need to prove a theorem is to assemble all the data that is already in mathlib, which might be needed in the proof. This is done via the command import. For example, I need the theory of ideals, which is located in mathlib in the branch $ring_theory$, and the file name is ideal.lean. Hence, I start my code with importing all the files I need : 
+
+\begin{lstlisting}
+import ring_theory.ideals
+\end{lstlisting}
+
+A namespace is used to group code. For example, if a lemma named $lemma$ is proved under the namespace $algebra$, then, the identity of the lemma in other Lean files is $algebra.lemma$. Note that $lemma$ can be accessed only once $algebra$ has been imported. The command $open <namespace>$ makes the namespace accessible (including the variables in it), until $end <namespace>$ is applied. That is, if $open algebra$ is used, then we may access $lemma$ without the $algebra$ prefix. \\
+
+\subsection{Tactics}
+
+Now that we know how to state a theorem, let us look at some common tactics that might help prove it. The foundation of all tactics are logic, or set theory. We shall see examples of all these tactics in the next section. \\
+
+\subsubsection{Simp}
+The most marvelous tactic to use is simp. Numerous "basic" lemmas in mathlib, such as addition by zero is trivial, are given an attribute of simp. This means that when one uses simp, each of the lemmas given the attribute simp is applied to the goal, and used to simplify the goal. There are several variations of simp, such as $dsimp$, which only uses definitional equalities, or simp only $[t_1, \dots, t_n]$, which uses only $t_1, \dots, t_n$ to simplify the goal. Since the functionality of simp changes every time mathlib is updated, our code can come up with errors if simp is used in the early stages of a proof. A way to tackle this is by using $squeeze_simp$, which gives us the particular lemmas simp is using, and suggests applying simp only with those specific lemmas. This is very useful to learn more about the preexisting theorems in mathlib. \\
+
+Other tactics that work like simp include $norm_cast$, $norm_num$, and $linarith$. In general, it is a good idea to apply simp or any of these tactics and hope that it simplifies, if not solves the goal. If the goal is already present as a local assumption, then one may use the tactic assumption to close the goal. \\
+
+\subsubsection{Intros}
+This tactic is used to introduce an assumption. For example, if the goal is p $\xrightarrow[]{}$ q, then intro f introduces an assumption h : p and changes the goal to q. \\
+
+This tactic cannot be used on local assumptions. It has several variations, such as intros and rintros, which is slightly stronger, and introduces as many assumptions as required.
+
+\subsubsection{Rewrite}
+
+Suppose there exists a theorem t that the given goal A is equivalent to (via an if and only if statement, or an equality) to B, that is, $t : A \iff B$. We may then use the rewrite tactic. rw t then changes the goal to B. Instead, if the goal is B, and you wish to change it to A, you can use rw $\xleftarrow[]{}$ t . If we have a local proposition named h, then one may apply the rewrite tactic at h by rw t at h . \\
+
+Rewrite has several variations, such as simp$_$rw or $rw_assoc$, which are pairing with simp and associativity respectively.
+
+\subsubsection{Apply}
+Recall that rewrite works only for equalities or if and only if statements. To apply an if statement to our goal, the tactic apply must be used. apply works just like rewrite does. Unlike rewrite though, apply cannot be used on local propositions. \\
+
+Suppose we have a lemma t : p $\xrightarrow[]{}$ q,and our goal is of the form q. That is, the goal is to produce a proof of q, or an element of type q. The lemma t says that having a proof of p implies the existence of a proof of q. Hence apply t changes the goal to constructing a proof of p. If t has multiple assumptions, or hypotheses, then applying t creates goals to prove that each hypothesis is satisfied. \\
+
+Conversely, if we have a proof of p, say x, then apply t x solves the goal.
+
+\subsubsection{Cases}
+This tactic is used to split up the target. Some types have building blocks called constructors, and cases split up the target into these building blocks. For example, the type nat, which is the type of natural numbers, is made from 2 constructors, 0 and succ(n) for some $n \in \mathbb{N}$. Here, succ(n) stands for the successor of n, $n+1$. This means that every $n : nat$ has the form 0 or succ(m) for some $m : nat$. Hence, cases n will split the goal into two, adding assumptions that $n=0$ and $n=succ(m)$ respectively. \\
+
+Similarly, given a local assumption f, cases f breaks into various cases of f. For example, if f is an expression of the form A $\wedge$ B, then cases f with f1 f2 breaks f into f1 : A and f2 : B.
+
+\subsubsection{Exact}
+This tactic is used to close the goal, not to simplify it. Suppose we have a lemma or assumption f : q, and a goal q, then exact f closes the goal. Moreover, if f is a generalised statement, and the goal is f taking a specific value, say 1, then exact f 1 solves the goal. 
+
+\subsubsection{Have}
+The tactic have is used to create a local assumption. have f : p $\xrightarrow[]{}$ q creates a goal p $\xrightarrow[]{}$ q, and the main goal becomes secondary. Once this goalis solved, f is added to the list of local data. This is a useful tactic when we wish to create a sublemma from the specific given information. However, one must use it with caution, because overutilizing it may end up clogging the workspace.
+
+\subsubsection{Contradiction}
+The tactic $by_contradiction$ is used to solve the goal by contradiction. If the goal is p, it creates a local assumption h : $\lnot$p (the negation of p), and changes the goal to false. \\
+
+If all the ingredients required to show that the given goal is false are present in the local workspace, one may use the tactic exfalso, which changes the goal to false. exfalso applies the lemma false -> p, which is true for all expressions p.
+
+\subsubsection{Contrapose}
+We know that the contrapose of p $\implies$ q is $\lnot$q $\implies$ $\lnot$p. This is what the tactic contrapose strives to achieve. If we have a local assumption f : p and our goal is q, then contrapose f turns f into f : $\lnot$q, and changes the goal to $\lnot$p. 
+
+\subsubsection{Library search}
+Mathlib is Lean's library for all the math that has been formalised till date. It is important to keep it updated. Moreover, Mathlib is vast, and it can be non-trivial to look for what you need. The command $library_search$ finds lemmas that might help in solving the goal. \\
+
+While working in VSCode, when we right click on a word, there is an option, Peek Definition. This is very useful, because there are often several lemmas near the definition, which might come in handy. \\
+
+\section{The DVRs}
+
+The code I have written for discrete valuation rings is divided into 2 sections. The first section contains some lemmas regarding with top $\mathbb{Z}$, which shall be required in the second section, which has results regarding discrete valuation rings. \\
+
+There are several equivalent definitions of discrete valuation rings to choose from. The definition we wanted to work with is that of being a local principal ideal domain, which is not a field. However, Lean was having trouble with combining the overlap in local rings and principal ideal domains. Thus, we chose to work with the definition of a DVR being a principal ideal domain with a unique non-zero prime ideal. \\
+
+A discrete valuation field is then defined to be a field with a non-trivial additive discrete valuation on it. A valuation ring is defined to be a subset of the valuation field, such that every element has non-negative valuation. The aim is to prove that a valuation ring obtained from a discrete valuation field is a discrete valuation ring, as defined above. I shall provide snippets of the proof that the valuation ring is a principal ideal domain. The proof relies heavily on the tactics discussed in the previous section.
+
+\subsection{with top Z}
+Let us first understand the definition of a discrete valuation. An additive valuation on a field K is defined to be a surjective map $ v : K \to \mathbb{Z} \bigcup \infty$, such that : \\
+(1) $\forall x, y \in K$, $v(xy) = v(x) + v(y)$ \\
+(2) $\forall x, y \in K$, $v(x+y) \geq min(v(x), v(y))$ \\
+(3) $\forall x \in K$, $x = 0$ if and only if $v(x) = \infty$ \\
+Lean has a lattice structure for $\mathbb{Z} \bigcup \infty$, which is denoted $with _ top \mathbb{Z}$. In particular, its elements are $\infty$, which is denoted T, and a lift of each integer n, denoted $\uparrow n$. It has the usual order that integers have, and $\uparrow n \leq T$ for all $n : \mathbb{Z}$. with top $\mathbb{Z}$ also has addition and multiplication, but no subtraction. \\ 
+
+Note that every natural number a, which is of type $\mathbb{N}$(or equivalently of type nat), also has a lift to with top $\mathbb{Z}$, which is denoted $\uparrow a$. This can be confusing at times, as one may confuse it with $\uparrow a : \mathbb{Z}$. Thus, $a :\mathbb{N}$ can be realised in with top $\mathbb{Z}$ in two ways, one is by directly lifting it to with top $\mathbb{Z}$, denoted $\uparrow a$, and the other is by first lifting it to $\mathbb{Z}$, and then to with top $\mathbb{Z}$, denoted $\uparrow \uparrow a$. We shall use the following lemma frequently (which is also given the attributes simp and $norm_cast$) : 
+\begin{lstlisting}
+lemma coe_nat: ∀ (n : ℕ), ↑↑n = ↑n
+\end{lstlisting}
+
+I have proved the following lemmas regarding with top $\mathbb{Z}$ (the first two are due to Prof Kevin Buzzard) : 
+
+\begin{lstlisting}
+lemma with_top.cases (a : with_top ℤ) : a = ⊤ ∨ ∃ n : ℤ, a = n :=
+lemma sum_zero_iff_zero (a : with_top ℤ) : a + a = 0 ↔ a = 0 :=
+lemma with_top.transitivity (a b c : with_top ℤ) : a ≤ b -> b ≤ c -> a ≤ c :=
+lemma with_top.add_happens (a b c : with_top ℤ) (ne_top : a ≠ ⊤) : b=c ↔ a+b = a+c :=
+lemma with_top.add_le_happens (a b c : with_top ℤ) (ne_top : a ≠ ⊤) : b ≤ c ↔ a + b ≤ a+c :=
+lemma with_top.distrib (a b c : with_top ℤ) (na : a ≠ ⊤) (nb : b ≠ ⊤) (nc : c ≠ ⊤) : (a + b)*c = a*c + b*c :=
+lemma one_mul (a : with_top ℤ) : 1 * a = a :=
+lemma with_top.sub_add_eq_zero (n : ℕ) : ((-n : ℤ) : with_top ℤ) + (n : with_top ℤ) = 0 :=
+    -- ⊢ ↑-↑n + ↑n = 0
+lemma with_top.add_sub_eq_zero (n : ℕ) : (n : with_top ℤ) + ((-n : ℤ) : with_top ℤ) = 0 :=
+    -- ⊢ ↑n + ↑-↑n = 0
+\end{lstlisting}
+
+Notice that the last couple of lemmas take $n : with top \mathbb{Z}$ and $-n : \mathbb{Z}$. We know that n does not have type $with top \mathbb{Z}$, Lean infers the former statement as $\uparrow n : with top \mathbb{Z}$, and the latter as $- \uparrow n$.
+
+\subsection{Discrete valuation ring}
+Let us now have a look at the definition of discrete valuation ring in Lean.
+
+\begin{lstlisting}
+class discrete_valuation_ring (R : Type u) [integral_domain R] [is_principal_ideal_ring R] :=
+(prime_ideal' : ideal R)
+(primality : prime_ideal'.is_prime)
+(is_nonzero : prime_ideal' ≠ ⊥)
+(unique_nonzero_prime_ideal : ∀ P : ideal R, P.is_prime → P = ⊥ ∨ P = prime_ideal')
+\end{lstlisting}
+
+The structure class is used to facilitate a group of definitions. Here, we define a discrete valuation ring R to be an integral domain and a principal ideal ring which contains an ideal $prime_ideal'$. The expressions primality and $is_nonzero$ state that $prime_ideal'$ is prime and nonzero respectively. The final condition states that any ideal in R that is prime must be trivial or $prime_ideal'$. \\
+
+For the purposes of this article, we shall not be needing any of the other code pertaining to discrete valuation rings, hence I shall skip it.
+
+\subsection{Discrete valuation field}
+
+Let us now define a discrete valuation field, which is a field K with an additive valuation on it, as defined in a previous section. 
+
+\begin{lstlisting}
+class discrete_valuation_field (K : Type*) [field K] :=
+(v : K -> with_top ℤ ) 
+(hv : function.surjective v)
+(mul : ∀ (x y : K), v(x*y) = v(x) + v(y) )
+(add : ∀ (x y : K), min (v(x)) (v(y)) ≤ v(x + y)  )
+(non_zero : ∀ (x : K), v(x) = ⊤ ↔ x = 0 )
+
+namespace discrete_valuation_field
+
+definition valuation (K : Type*) [field K] [ discrete_valuation_field K ] : K -> with_top ℤ := v
+
+variables {K : Type*} [field K] [discrete_valuation_field K]
+\end{lstlisting}
+
+Notice that in the definition of a discrete valuation field, K is of $Type*$, which means that Lean may infer the type of K. After the definition, we open a namespace called discrete valuation field. It would be convenient to have a definition of valuation, since it is used so often. Finally, we make K a variable representing a field and a discrete valuation field. Notice that we need to put an argument of K being a field that is used by the definition of discrete valuation field. \\ 
+
+The following lemmas are proved : 
+
+\begin{lstlisting}
+lemma val_one_eq_zero : v(1 : K) = 0 :=
+lemma val_minus_one_is_zero : v((-1) : K) = 0 :=
+@[simp] lemma val_zero : v(0:K) = ⊤ :=
+\end{lstlisting}
+
+The first lemma has been proved by Prof Kevin Buzzard. The last lemma has been given an attribute simp, which means that applying simp to a goal containing $v(0)$ will change it to T. Also, notice how the type of 1 and 0 must be specified to be K. Failure to do this results in an error : 
+
+\begin{lstlisting}
+failed to synthesize type class instance for
+⊢ field ℕ
+\end{lstlisting}
+
+This is because $v$ takes values in a field, and since 1 has type $\mathbb{N}$, Lean tries to infer that $\mathbb{N}$ is a field and fails. \\
+
+We now define the valuation ring obtained from a discrete valuation field : 
+
+\begin{lstlisting}
+def val_ring (K : Type*) [field K] [discrete_valuation_field K] := { x : K | 0 ≤ v x } 
+
+instance (K : Type*) [field K] [discrete_valuation_field K] : is_add_subgroup (val_ring K) :=
+{
+  zero_mem := begin
+              unfold val_ring,
+              simp,
+              end,
+  add_mem := begin
+            unfold val_ring,
+            simp only [set.mem_set_of_eq],
+            rintros,
+            have g : min (v(a)) (v(b)) ≤ v(a + b),
+            {
+              apply add,
+            },
+            rw min_le_iff at g,
+            cases g,
+            {
+              exact with_top.transitivity _ _ _ a_1 g,
+            },
+            {
+              exact with_top.transitivity _ _ _ a_2 g,
+            },
+            end,
+  neg_mem := begin
+            unfold val_ring,
+            rintros,
+            simp only [set.mem_set_of_eq],
+            simp only [set.mem_set_of_eq] at a_1,
+            have f : -a = a * (-1 : K) := by simp,
+            rw [f, mul, val_minus_one_is_zero],
+            simp [a_1], 
+            end,
+}
+
+instance (K:Type*) [field K] [discrete_valuation_field K] : is_submonoid (val_ring K) :=
+{ one_mem := begin
+            unfold val_ring,
+            simp,
+            rw val_one_eq_zero,
+            norm_num,
+            end,
+  mul_mem := begin
+            unfold val_ring,
+            rintros,
+            simp,
+            simp at a_1,
+            simp at a_2,
+            rw mul,
+            apply add_nonneg' a_1 a_2,
+            end, }
+
+instance valuation_ring (K:Type*) [field K] [discrete_valuation_field K] : is_subring (val_ring K) :=
+{}
+
+instance is_domain (K:Type*) [field K] [discrete_valuation_field K] : integral_domain (val_ring K) :=
+subring.domain (val_ring K)
+
+def unif (K:Type*) [field K] [discrete_valuation_field K] : set K := { π | v π = 1 }
+
+variables (π : K) (hπ : π ∈ unif K)
+\end{lstlisting}
+
+The definition of $val_ring$ does not accept the variable K. Moreover, Lean automatically infers $val_ring$ K : set K, that is, it is a subset of K. \\
+
+An instance is essentially a property with a proof. At the end of this code, Lean understands that $val_ring$ K is a subring of K. In order to prove the instance that $val_ring$ K is an additive subgroup of K, we must prove that it satisfies all the conditions specified in the definition of $is_add_subgroup$. An additive subgroup is defined to be a set containing zero ($zero_mem$), and being closed under addition ($add_mem$) and negation ($neg_mem$). Providing a proof for each of these properties suffices. Similarly,a submonoid is defined to be a set containing 1 ($one_mem$) and is closed under multiplication ($mul_mem$). \\
+
+We first prove that the valuation ring is an additive subgroup and a submonoid of K, which then implies that $val_ring$ K is a subring of K. We then use the fact that a subring of a domain is an integral domain, to show that the valuation ring is an integral domain. Finally, we define the set of uniformisers of K, that is, the elements of K having valuation 1. We then take $\pi$ to be a variable denoting a uniformiser of K. \\ 
+
+We now prove a bunch of lemmas before proving that $val_ring$ K is a principal ideal ring (we have already shown it is a domain) :
+
+\begin{lstlisting}
+lemma val_unif_eq_one (hπ : π ∈ unif K) : v(π) = 1 :=
+lemma unif_ne_zero (hπ : π ∈ unif K) : π ≠ 0 :=
+lemma val_inv (x : K) (nz : x ≠ 0) : v(x) + v(x)⁻¹ = 0 :=
+lemma contra_non_zero (x : K) (n : ℕ) (nz : n ≠ 0) : v(x^n) ≠ ⊤ ↔ x ≠ 0 :=
+lemma contra_non_zero_one (x : K) : v(x) ≠ ⊤ ↔ x ≠ 0 :=
+lemma val_nat_power (a : K) (nz : a ≠ 0) : ∀ n : ℕ, v(a^n) = (n : with_top ℤ)*v(a) :=
+lemma val_int_power (a : K) (nz : a ≠ 0) : ∀ n : ℤ, v(a^n) = (n : with_top ℤ)*v(a) :=
+lemma unit_iff_val_zero (α : K) (hα : α ∈ val_ring K) (nzα : α ≠ 0) : v (α) = 0 ↔ ∃ β ∈ val_ring K, α * β = 1 := 
+lemma val_eq_iff_asso (x y : K) (hx : x ∈ val_ring K) (hy : y ∈ val_ring K) (nzx : x ≠ 0) (nzy : y ≠ 0) : v(x) = v(y) ↔ ∃ β ∈ val_ring K, v(β) = 0 ∧ x * β = y :=
+lemma unif_assoc (x : K) (hx : x ∈ val_ring K) (nz : x ≠ 0) (hπ : π ∈ unif K) : ∃ β ∈ val_ring K, (v(β) = 0 ∧ ∃! n : ℤ, x * β = π^n) :=
+lemma val_is_nat (hπ : π ∈ unif K) (x : val_ring K) (nzx : x ≠ 0) : ∃ m : ℕ, v(x:K) = ↑m :=
+lemma exists_unif : ∃ π : K, v(π) = 1 :=
+\end{lstlisting}
+
+Notice that the hypothesis $h\pi$ uses that $\pi \in unif$ K, not $\pi : unif$ K. This is because $\pi$ has already been defined to be of type K. Also, $a \neq b$ is the same as $ \lnot a = b$, which is the same as $a = b \implies false$. In the lemma $val_inv$, it would have been more convenient if one could write $v(x^{-1}) = - v(x)$, however subtraction is not defined in with top $\mathbb{Z}$, because one would then have to define T - T. A lot of the lemmas are proved for both $n : \mathbb{N}$, and $n : \mathbb{Z}$. Dealing with the case $n : \mathbb{N}$ is slightly harder than $n : \mathbb{Z}$. An alternative would have been to work in enat, which is analogous to with top $\mathbb{N}$. In order to do this, one would have to restrict the valuation to the valuation ring, and apply it there. This could turn out to be problematic, in case an element from K is needed. \\
+
+If K is a field, for $\alpha$ : K, $\alpha^{-1}$ is defined to be the inverse of $\alpha$ if $\alpha$ is non-zero, and 0 if $\alpha=0$. Division $a/b$ is defined to be $a*b^{-1}$, so this means $1/0=0$ as well. The nonzero part is added as a hypothesis in lemmas that need it, such as, when $a*a^{-1} = 1$.
+
+\subsection{Proof of being a PID}
+
+\begin{lstlisting}
+instance is_pir (K:Type*) [field K] [discrete_valuation_field K] : is_principal_ideal_ring (val_ring K) :=
+\end{lstlisting}
+
+The proof is split into several lemmas, which are then patched up together. I shall reproduce a proof of some of them. The definition of $is_principal_ideal_ring$ is : 
+
+\begin{lstlisting}
+class is_principal_ideal_ring (R : Type u) [comm_ring R] : Prop :=
+(principal : ∀ (S : ideal R), S.is_principal)
+\end{lstlisting}
+
+Thus, we (only) need to show that every ideal in $val_ring K$ is principal. At first, we need to choose a uniformiser $\pi$. Note that this is the only place where I have encountered requiring the valuation to be non-zero, or surjective. I shall skip the proof of this lemma, named : 
+\begin{lstlisting}
+hπ: π ∈ unif K
+\end{lstlisting}
+where unif K is the set of uniformisers of K. The next tactic, rintros, changes the goal from 
+
+\begin{lstlisting}
+⊢ ∀ (S : ideal ↥(val_ring K)), submodule.is_principal S
+\end{lstlisting}
+to
+\begin{lstlisting}
+S: ideal ↥(val_ring K)
+⊢ submodule.is_principal S
+\end{lstlisting}
+
+Thus rintros, which is a stronger version of intros, introduces the variable S, an ideal in $val_ring K$. We now deal with the trivial case of S being empty. \\
+
+\begin{tabular}{c|c}
+    \begin{lstlisting}
+    by_cases S = ⊥,
+    { rw h,
+      use 0,
+      apply eq.symm,
+      rw submodule.span_singleton_eq_bot, },
+    \end{lstlisting}     &  
+    \begin{lstlisting}
+    h: S = ⊥ ⊢ submodule.is_principal S
+    ⊢ submodule.is_principal ⊥
+    ⊢ ⊥ = submodule.span ↥(val_ring K) {0}
+    ⊢ submodule.span ↥(val_ring K) {0} = ⊥
+    goals accomplished
+    \end{lstlisting}
+\end{tabular}
+\label{tab:my_label}
+
+The $by_cases$ tactic separates the goal into cases of S being empty and nonempty. The rewrite tactic replaces an equality (or if and only if statement) in the goal with the equality (or if and only if statement) given in the input. $submodule.is_principal$ is looking for a generator, which is provided by the tactic use. The next statement applies the lemma $eq.symm$, which says that $a = b$ implies $b=a$. The final lemmma that solves the goal says that the span of a submodule is 0 if and only if it is generated by 0. \\
+
+We now have S to be nonempty, which is stored in the proposition h. Next, we define the set $Q$ of all naturals that correspond to the valuation of some x in S. The infimum of Q shall be denoted by $Inf Q$. We know that S is then generated by $\pi^{Inf Q}$ We also state a lemma g (whose proof shall be omitted), which says that the valuation of $\pi^{Inf Q}$ is the image of $Inf Q$ in $with_top(\mathbb{Z})$. \\
+
+\begin{tabular}{c|c}
+    \begin{lstlisting}
+    let Q := {n : ℕ | ∃ x ∈ S, (n : with_top ℤ) = v(x:K) },
+    
+    have g : v(π ^(Inf Q)) = ↑(Inf Q),
+    \end{lstlisting} &  
+    \begin{lstlisting}
+    h: ¬S = ⊥, 
+    Q: set ℕ := {n : ℕ | ∃ (x : ↥(val_ring K)) (H : x ∈ S), ↑n = v ↑x}
+    ⊢ v (π ^ Inf Q) = ↑(Inf Q)
+    \end{lstlisting}
+\end{tabular}
+
+Note that Lean automatically sets Q to be of type set $\mathbb{N}$. Also, since we put the condition $x \in S$, x is automatically taken to be of type $val_ring$ K(arrow?). \\
+
+\begin{tabular}{c|c}
+    \begin{lstlisting}
+    have nz : π^(Inf Q) ≠ 0,
+    { by_contradiction,
+      simp at a,
+      apply_fun v at a,
+      rw [g, val_zero] at a,
+      apply with_top.nat_ne_top (Inf Q),
+      exact a, },
+    \end{lstlisting} & 
+    \begin{lstlisting}
+    ⊢ π ^ Inf Q ≠ 0
+    a: ¬π ^ Inf Q ≠ 0 ⊢ false
+    a: π ^ Inf Q = 0 ⊢ false
+    a: v (π ^ Inf Q) = v 0 ⊢ false
+    a: ↑(Inf Q) = ⊤ ⊢ false
+    a: ↑(Inf Q) = ⊤ ⊢ ↑(Inf Q) = ⊤
+    goals accomplished
+    \end{lstlisting} 
+\end{tabular}
+
+The above lemma nz, shows that $\pi^{Inf Q} \neq 0$. The proof is by contradiction. The first tactic, $by_contradiction$ makes the negation of the goal the proposition a, and turns the goal to false. Simp at a turns a into a simpler form. The $apply_fun$ tactic applies the function v to a. The next line is the rewrite tactic on a, using g and the lemma $val_zero$ (v(0) = T). The next lemma to be used is imported from the file $with_top$, and it states that for all $n \in \mathbb{N}$, $(n : with_top \mathbb{Z} \neq T)$, or equivalently, $(n : with_top \mathbb{Z} = T) \implies false$. Since our goal is false, the apply tactic, taking the specific value $n=Inf Q$ changes it to the precise statement of a. exact a then solves the goal. \\
+
+\begin{tabular}{c|c}
+    \begin{lstlisting}
+    use π^(Inf Q),
+    apply submodule.ext,
+    
+    rintros,
+    
+    split,
+    \end{lstlisting} &
+    \begin{lstlisting}
+    ⊢ π ^ Inf Q ∈ val_ring K
+    ⊢ ∀ (x : ↥(val_ring K)), x ∈ S ↔ x ∈ submodule.span ↥(val_ring K) {⟨π ^ Inf Q, _⟩}
+    x: ↥(val_ring K)
+⊢ x ∈ S ↔ x ∈ submodule.span ↥(val_ring K) {⟨π ^ Inf Q, _⟩}
+⊢ x ∈ S → x ∈ submodule.span ↥(val_ring K) {⟨π ^ Inf Q, _⟩}
+    \end{lstlisting}
+\end{tabular}
+
+We now get into the proof that $\pi^{Inf Q}$ is the generator of S. After applying use $\pi^{Inf Q}$, we must first show that $\pi^{Inf Q}$ is in fact an element of $val_ring$ K. We shall skip this proof. The theorem ext (imported from submodule.lean) says that if, for every x in a module, and for submodules p and q, $x \in p \iff x \in q$, then $p = q$. In order to apply the theorem, Lean must make sure the hypothesis is true, hence the goal changes to the hypothesis. rintros introduces a variable x in $val_ring K$, and the tactic split splits the goal into 2 goals, which say that each ideal is contained in the other. Note that ideals are defined as submodules of the ring. \\
+
+We now solve the second goal(we omit the proof of the first goal), which is to show that $submodule.span {\pi^{Inf Q}} \subset S$. This is done by showing that $Inf Q \in Q$, thus there exists $z \in S$ such that $v(z) = Inf Q$, and z is associated to $\pi^{Inf Q}$, hence $\pi^{Inf Q} \in S$. \\
+
+\begin{adjustbox}
+\begin{tabular}{c|c}
+    \begin{lstlisting}
+    have f' : ∃ x ∈ S, x ≠ (0 : val_ring K),
+      { contrapose h,
+      
+        simp at h, 
+        simp,
+        apply ideal.ext, rintros, simp only [submodule.mem_bot],
+        split,
+        { rintros,
+          specialize h x_1, simp at h,
+          apply h a_1, },
+        },
+    \end{lstlisting} &
+    \begin{lstlisting}
+    ⊢ ∃ (x : ↥(val_ring K)) (H : x ∈ S), x ≠ (0 : val_ring K)
+    h: ¬∃ (x : ↥(val_ring K)) (H : x ∈ S), x ≠ (0 : val_ring K) ⊢ ¬¬S = ⊥
+    h: ∀ (x : K) (x_1 : x ∈ val_ring K), ¬(⟨x, x_1⟩ ∈ S ∧ ¬⟨x, x_1⟩ = 0)⊢ S = ⊥
+    x_1: ↥(val_ring K)
+    ⊢ x_1 ∈ S ↔ x_1 = 0
+    ⊢ x_1 ∈ S → x_1 = 0
+    a_1: x_1 ∈ S
+    h: x_1 ∈ S → x_1 = 0
+    ⊢ x_1 = 0
+    goals accomplished
+    
+    \end{lstlisting}
+\end{tabular}
+\end{adjustbox}
+
+We start by proving that since S is nonempty, it must have a nonzero element. Note that we must specify that 0 is in $val_ring$ K, else Lean assumes it to be of type $\mathbb{N}$, and gives a type mismatch error. We prove this using the contrapose tactic, which takes a known expression, and transforms the goal into the contrapositive with respect to the given argument. In this case, we choose h, which says that S is nonempty. The simp statements apply the negation on h and the goal respectively. There is a way to check which lemmas or theorems simp is applying. One may type $squeeze_simp$, and Lean will give suggestions for the applicable lemmas. In the next line, Lean suggests applying the lemma $mem_bot$, which says that every element of the trivial submodule is 0. We then have an if and only if statement, that splits into the two implications. We omit the proof of $x_1 = 0 \implies x_1 \in S$. In the proof of the other implication, rintros introduces a variable $x_1 \in S$. The tactic specialize applies the specific case of $x_1$ to h. simp does the nontrivial job of converting h to the given more pleasant form. \\
+
+\begin{tabular}{c|c}
+    \begin{lstlisting}
+    have p : Inf Q ∈ Q,
+      { apply nat.Inf_mem,
+        contrapose h,
+        simp,
+        by_contradiction,
+        cases f' with x' f',
+        have f_1 : ∃ m : ℕ, v(x':K) = ↑(m),
+        { apply val_is_nat,
+          exact hπ,
+          cases f',
+          contrapose f'_h,
+          simp,
+          simp at f'_h,
+          rw f'_h, },
+        cases f_1 with m' f_1,
+        have g' : m' ∈ Q,
+        { simp,
+          use x',
+          simp,
+          split,
+          cases f',
+          assumption,
+          exact eq.symm f_1, },
+        apply h,
+        use m',
+        apply g', },
+    \end{lstlisting} &   
+\end{tabular}
+
+Next, we show that $Inf Q \in Q$. We apply a lemma called $Inf_mem$, which says that any nonempty subset of the naturals contains its infimum. Hence, the goal then changes to showing that Q is nonempty. We use the contrapose h tactic again, which changes the goal to Q being empty implies S is empty. This is done by using the $by_contradiction$ tactic. We now use f to construct $x' \neq 0$ in S. The cases tactic introduces the case of f' for the variable x'. We want to then show that the valuation of $x'$ is the image of a natural number in $with_top \mathbb{Z}$, say m'. Note that this is not trivial to Lean, since $x'$ being nonzero implies that there exists some integer whose image is the valuation of $x'$. The central issue is that $\mathbb{Z}$ and $\mathbb{N}$ are different types, and every natural number is not immediately identified as an integer. This is caused because Lean identified Q as a set in $\mathbb{N}$, and thus it will not accept integers as elements. Once we have $m'$ of type $\mathbb{N}$, we want to show that $m' \in Q$. This follows from the definition of $x'$ and $Q$. The contradiction now lies in the fact that h says Q is empty, while we have shown $m' \in Q$. \\
+
+\begin{tabular}{c|c}
+    \begin{lstlisting}
+    have f : ∃ z ∈ S, v(z : K) = ↑(Inf Q),
+    \end{lstlisting} &   
+\end{tabular}
+
+Since we have shown that $Inf Q \in Q$, by definition, this implies that $\exists z \in S$ such that $v(z) = Inf Q$. This is the proof of the above lemma f. We now have all the ingredients for our proof. \\
+
+\begin{tabular}{c|c}
+    \begin{lstlisting}
+      cases f with z f,
+      rw <-g at f,
+      simp at f,
+      cases f,
+      rw val_eq_iff_asso at f_right,
+      { cases f_right with w f_1,
+        cases f_1 with f_1 f_2,
+        cases f_2 with f_2 f_3,
+        rw set.singleton_subset_iff,
+        simp only [submodule.mem_coe],
+        simp_rw [← f_3],
+        change z * ⟨w,f_1⟩ ∈ S,
+        apply ideal.mul_mem_right S f_left, },
+    \end{lstlisting} &  
+\end{tabular}
+
+First, using the cases tactic, we fix a $z \in S$ with valuation $Inf Q$. The lemma $val_eq_iff_asso$ is a lemma proved by me, which states that, 
+
+\begin{lstlisting}
+lemma val_eq_iff_asso (x y : K) (hx : x ∈ val_ring K) (hy : y ∈ val_ring K) (nzx : x ≠ 0) (nzy : y ≠ 0) : v(x) = v(y) ↔ ∃ β ∈ val_ring K, v(β) = 0 ∧ x * β = y :=
+\end{lstlisting}
+
+This is equivalent to saying that $\beta$ is a unit in $val_ring K$. After applying cases, we get the required expression and variables, $z,w \in val_ring K$ and $z \in S$ such that $f_3$ holds. Note that $z$ with the arrow in $f_3$ denotes the image, or lift, of $z$ in K. Thus $f_3$ is an expression of multiplication in K. The following part was one of the most challenging parts of the proof, because it seemed that all that needed to be done was rewriting $f_3$ into the goal, after which one may use that $S$ is an ideal, and since $z \in S$, $\pi^{Inf Q} \in S$. However, I kept getting errors, because $\pi^{Inf Q}$ is of type K, while, in order to be able to apply any properties of ideals on it, it must be of type $val_ring K$. Note that the goal shows S with an arrow, which means that we are looking at the lift of S in K. The lemma $mem_coe$ brings the goal down to S. The $< ,_>$ signifies that the condition $pi^{Inf Q} \in val_ring K$ is also encoded in the goal. The tactic change replaces the goal with the provided expression, as long as it is definitionally equal to the goal. We finally manage to successfully change it into a goal which has multiplication in S. We can then apply the lemma $mul_mem_right$, which states that the product (right multiplication) of an element of an ideal with an element of the ring remains in the ideal. This solves the goal. 
+
+\section{Future work}
+Iwasawa theory
+
+\section{KB enlightenment}
+If R is a subring of K, then a term of type R is a pair, consisting of an element of K and a proof that it satisfies the property defining R. \\
+
+Kevin Buzzard: If you want to change any goal you like to false, you can do exfalso.
+Kevin Buzzard: If P is any Proposition (either true or false), then false -> P
+Kevin Buzzard: so you can apply false -> P to your goal, if your goal is P, and it changes the goal to false
+Kevin Buzzard: Inductive types (I was talking about them earlier) have principles of induction attached to them.
+Kevin Buzzard: The principles of induction (or more generally principles of recursion, depending on whether you are proving things or defining things) are generated automatically from the constructors of the inductive type.
+Kevin Buzzard: For example nat has two constructors, zero and succ n, so the principle of induction says "if you've proved it for zero, and if you can prove it for succ n given that you have already proved it for n, then you've proved it for all natural numbers"
+Kevin Buzzard: false has no constructors!
+Kevin Buzzard: So the principle of induction for false is that you don't have to do anything at all with P, and the conclusion is that false -> P \\
+
+Kevin Buzzard: In general the answer is that if you want to use a previous lemma then you can just write have h : <statement of lemma> := <name of lemma>
+Kevin Buzzard: When you write lemma unique_max_ideal : ∃! I : ideal R, I.is_maximal := ...
+Kevin Buzzard: you are saying this. There is a Proposition, which is ∃! I : ideal R, I.is_maximal. This is a true/false statement. It has type Prop.
+Kevin Buzzard: And there is also its proof, which you are going to call unique_max_ideal
+Kevin Buzzard: When we say things like "the Bolzano Weierstrass theorem says (blah)" we are talking about the statement of the theorem. When we say "by the Bolzano Weierstrass theorem we deduce (blah)", we are talking about the proof of the theorem.
+Kevin Buzzard: It took me a while to realise that mathematicians use the phrase "theorem" to mean both of those things. In Lean we have propositions, which can be either true or false (e.g. 2+2=5 is a proposition), and proofs. Propositions have type Prop and if P is a proposition its proof has type P. The statement and the proof are clearly distinguished in Lean, and it took a while for this to dawn on me. \\
+
+Kevin Buzzard: If you have h : P and f : P -> Q and you really just need a proof of Q and don't care about P any more, another possibility is replace h := f h.
+Kevin Buzzard: Or if you want to change f : P -> Q to f : Q then you can specialize f h \\
+
+Kevin Buzzard: If f : P -> false and h : P then h is an element of set of proofs of P, and f is a function mapping proofs of P to proofs of false.
+Kevin Buzzard: So f h : false
+Kevin Buzzard: i.e. applying the function f to the term h gives you a term of type false.
+Kevin Buzzard: If you want to make a new term of type false you can do have h2 : false := f h or just have h2 := f h
+Kevin Buzzard: If you want to change h from a proof of P to a proof of false you can do apply_fun f at h
+Kevin Buzzard: If you just want to close your goal though, you can just do cases (f h) (maybe you don't need the brackets, I'm not sure)
+Kevin Buzzard: because if x : A and A is an inductive type with 
+nn
+n constructors (e.g. like nat is an inductive type with 2 constructors zero and succ) then cases x will just do a case split, and you'll end up with $n$ goals. For example if n : nat then cases n will produce two goals, one with 
+n=0n=0
+n=0 and one with n = succ d (actually you had better put cases n with d to make sure it's called d, otherwise it will get some junk name like n_1 or something) \\
+
+Kevin Buzzard: That's what a subset of K is in Lean. It is simply a map from K to Prop, sending an element a to the true/false statement saying that a is in the subset
+Kevin Buzzard: Every time you build a new thing, a new subset, a new definition -- every time you make one, you are making your structure bigger. \\
+
+\section{Bibliography}
+\item Source code - 
+https://github.com/laughinggas/DVR/blob/master/src/Test.lean
+
+\item Tactics in Mathlib - 
+https://leanprover-community.github.io/mathlib_docs/tactics.html#top
+ 
+ \item Theorem Proving in Lean - https://leanprover.github.io/tutorial/tutorial.pdf
+ 
+ \item Natural numbers game - http://wwwf.imperial.ac.uk/~buzzard/xena/natural_number_game/
+ 
+ \item Mathematics in Lean - 
+ https://leanprover-community.github.io/mathematics_in_lean/index.html
+
+\end{document}

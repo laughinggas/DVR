@@ -1,0 +1,27 @@
+\babel@toc {english}{}
+\contentsline {section}{\numberline {1}Introduction}{1}%
+\contentsline {section}{\numberline {2}Brief introduction to Lean for mathematicians}{1}%
+\contentsline {subsection}{\numberline {2.1}Type}{1}%
+\contentsline {subsection}{\numberline {2.2}Definition}{2}%
+\contentsline {subsection}{\numberline {2.3}Propositions and theorems}{3}%
+\contentsline {subsection}{\numberline {2.4}Variables}{3}%
+\contentsline {subsection}{\numberline {2.5}Import and namespaces}{4}%
+\contentsline {subsection}{\numberline {2.6}Tactics}{4}%
+\contentsline {subsubsection}{\numberline {2.6.1}Simp}{4}%
+\contentsline {subsubsection}{\numberline {2.6.2}Intros}{4}%
+\contentsline {subsubsection}{\numberline {2.6.3}Rewrite}{5}%
+\contentsline {subsubsection}{\numberline {2.6.4}Apply}{5}%
+\contentsline {subsubsection}{\numberline {2.6.5}Cases}{5}%
+\contentsline {subsubsection}{\numberline {2.6.6}Exact}{5}%
+\contentsline {subsubsection}{\numberline {2.6.7}Have}{6}%
+\contentsline {subsubsection}{\numberline {2.6.8}Contradiction}{6}%
+\contentsline {subsubsection}{\numberline {2.6.9}Contrapose}{6}%
+\contentsline {subsubsection}{\numberline {2.6.10}Library search}{6}%
+\contentsline {section}{\numberline {3}The DVRs}{6}%
+\contentsline {subsection}{\numberline {3.1}with top Z}{7}%
+\contentsline {subsection}{\numberline {3.2}Discrete valuation ring}{8}%
+\contentsline {subsection}{\numberline {3.3}Discrete valuation field}{9}%
+\contentsline {subsection}{\numberline {3.4}Proof of being a PID}{13}%
+\contentsline {section}{\numberline {4}Future work}{18}%
+\contentsline {section}{\numberline {5}KB enlightenment}{18}%
+\contentsline {section}{\numberline {6}Bibliography}{19}%
