@@ -820,7 +820,7 @@ instance is_dvr (K:Type*) [field K] [discrete_valuation_field K] : discrete_valu
   is_nonzero := begin
             by_contra,
             simp at a,
-            rw ideal.span_singleton_eq_bot at a,            
+            rw <-ideal.span_singleton_eq_bot at a,            
             cases classical.some _ with π,
             sorry,
             end,
