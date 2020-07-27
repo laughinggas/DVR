@@ -195,7 +195,7 @@ instance (K:Type*) [field K] [discrete_valuation_field K] : is_submonoid (val_ri
             rintros a b ha hb,
             simp at ha hb ⊢,
             rw mul,
-            apply add_nonneg' ha hb,
+            apply add_nonneg ha hb,
             end, }   
 
 instance valuation_ring (K:Type*) [field K] [discrete_valuation_field K] : is_subring (val_ring K) :=
@@ -263,6 +263,8 @@ lemma one_mul (a : with_top ℤ) : 1 * a = a :=
 begin
 rcases (with_top.cases a) with rfl | ⟨a, rfl⟩;
 try{norm_cast, simp},
+simp,
+rw [<-with_top.coe_one, <-with_top.coe_zero, with_top.coe_eq_coe],
 simp,
 end
 
@@ -433,7 +435,7 @@ use (x⁻¹*y),
       {
         rw <-a,
         norm_num,
-        rw mul_inv_cancel_assoc_right,
+        rw mul_inv_cancel_left',
         exact nzx,    
       },
       exact nzx,
@@ -499,7 +501,7 @@ cases (with_top.cases) (v(x)),
     {
       exact g,
     },
-    rw mul_inv_cancel_assoc_right,
+    rw mul_inv_cancel_left',
     use n,
     {
       split,
