@@ -195,7 +195,7 @@ instance (K:Type*) [field K] [discrete_valuation_field K] : is_submonoid (val_ri
             rintros a b ha hb,
             simp at ha hb ⊢,
             rw mul,
-            apply add_nonneg' ha hb,
+            apply add_nonneg ha hb,
             end, }   
 
 instance valuation_ring (K:Type*) [field K] [discrete_valuation_field K] : is_subring (val_ring K) :=
@@ -208,20 +208,13 @@ def unif (K:Type*) [field K] [discrete_valuation_field K] : set K := { π | v π
 
 variables (π : K) (hπ : π ∈ unif K)
 
-lemma val_unif_eq_one (hπ : π ∈ unif K) : v(π) = 1 :=
-begin
-unfold unif at hπ,
-simp at hπ,
-exact hπ,
-end
+lemma val_unif_eq_one (hπ : π ∈ unif K) : v(π) = 1 := hπ
+lemma mem_unif_iff : π ∈ unif K ↔ v(π) = 1 := iff.rfl
 
 lemma unif_ne_zero (hπ : π ∈ unif K) : π ≠ 0 :=
 begin
-      unfold unif at hπ,
-      simp at hπ,
-      intro g,
-      rw [<-non_zero, hπ] at g,
-      cases g,
+rw mem_unif_iff at hπ,
+simp [(non_zero π).symm, hπ]
 end 
 
 lemma with_top.add_happens (a b c : with_top ℤ) (ne_top : a ≠ ⊤) : b=c ↔ a+b = a+c :=
@@ -234,6 +227,8 @@ norm_cast,
 simp, 
 end
 
+lemma with_top.add_right_inj (a : with_top ℤ) (ha : a ≠ ⊤) {b c : with_top ℤ} : a + b = a + c ↔ b = c := (with_top.add_happens a b c ha).symm
+
 lemma with_top.add_le_happens (a b c : with_top ℤ) (ne_top : a ≠ ⊤) : b ≤ c ↔ a + b ≤ a+c :=
 begin
  rcases(with_top.cases a) with rfl | ⟨a, rfl⟩;
@@ -242,12 +237,20 @@ begin
  try {tauto},
  {
    norm_cast,
-   rw [with_top.add_top, classical.iff_iff_not_or_and_or_not],
    simp,
  },
  norm_cast, 
  simp,
 end
+
+/- @[simp] lemma with_top.add_le_add_iff_left {a : with_top ℤ} (b c : with_top ℤ) (ne_top : a ≠ ⊤) : b ≤ c ↔ a + b ≤ a+c := (with_top.add_le_happens a b c ne_top).symm -/
+
+/-lemma with_top.cases' (α : Type) (a : with_top α) a = ⊤ ∨ ∃ b : α, a = b :=
+begin
+cases a,
+left, refl,
+right, use a, refl,
+end -/
 
 lemma with_top.distrib {a b c : with_top ℤ} (na : a ≠ ⊤) (nb : b ≠ ⊤) (nc : c ≠ ⊤) : (a + b)*c = a*c + b*c :=
 begin
@@ -263,7 +266,10 @@ lemma one_mul (a : with_top ℤ) : 1 * a = a :=
 begin
 rcases (with_top.cases a) with rfl | ⟨a, rfl⟩;
 try{norm_cast, simp},
-simp,
+rw with_top.mul_top, 
+by_contra,
+simp at a,
+apply_fun v at a,
 end
 
 lemma val_inv (x : K) (nz : x ≠ 0) : v(x) + v(x)⁻¹ = 0 :=
@@ -301,9 +307,8 @@ end
 
 lemma contra_non_zero_one (x : K) : v(x) ≠ ⊤ ↔ x ≠ 0 := 
 begin
-have g := contra_non_zero x 1,
-simp at g,
-exact g,
+convert contra_non_zero x 1 _;
+simp * at *
 end
 
 lemma val_nat_power (a : K) (nz : a ≠ 0) : ∀ n : ℕ, v(a^n) = (n : with_top ℤ)*v(a) :=
@@ -327,6 +332,7 @@ end
 
 lemma val_int_power (a : K) (nz : a ≠ 0) : ∀ n : ℤ, v(a^n) = (n : with_top ℤ)*v(a) :=
 begin
+-- apply int.induction_on' n 0,
 rintros,
 cases n,
 {
@@ -433,7 +439,7 @@ use (x⁻¹*y),
       {
         rw <-a,
         norm_num,
-        rw mul_inv_cancel_assoc_right,
+        rw mul_inv_cancel_left',
         exact nzx,    
       },
       exact nzx,
@@ -469,54 +475,41 @@ simp at hπ,
 cases (with_top.cases) (v(x)),
 {
  rw non_zero at h,
- exfalso,
- apply nz,
- exact h,
+ contradiction,
 },
 {
   cases h with n h,
-  split,
-  let y := x⁻¹ * π^n,
-  have g : v(y) = 0,
+  use (x⁻¹ * π^n),
+  have g : v(x⁻¹ * π^n) = 0,
   {
     rw [mul, val_int_power π, hπ, add_comm],
     norm_cast,
-    simp,
+    simp only [mul_one],
     rw [<-h, val_inv],
     exact nz,
     exact hπ',
   },
-  have f : y ∈ val_ring K,
+  split,
+  {unfold val_ring,
+  simp,
+  rw g,
+  norm_num, },
+  use g,  
+  use n,
+  simp,
+  rw mul_inv_cancel_left',
+  split,
+  refl,
+  rintros,
+  apply_fun v at a,
+  rw [val_int_power, val_int_power, hπ] at a,
   {
-    unfold val_ring,
-    simp,
-    rw g,
-    norm_num,
+    norm_cast at a,
+    simp at a,
+    exact eq.symm a,    
   },
-  {
-    use f,
-    split,
-    {
-      exact g,
-    },
-    rw mul_inv_cancel_assoc_right,
-    use n,
-    {
-      split,
-      simp only [eq_self_iff_true],
-      rintros,
-      apply_fun v at a,
-      rw [val_int_power, val_int_power, hπ] at a,
-      {
-        norm_cast at a,
-        simp at a,
-        exact eq.symm a,    
-      },
-      exact hπ',
-      exact hπ',
-    },
-    exact nz,    
-  },
+  repeat {exact hπ'},
+  exact nz,    
 },
 end
 
@@ -550,11 +543,7 @@ cases with_top.cases (v(x:K)),
     exact x.2,
     rw h at H,
     norm_cast at H,
-    exfalso,
-    contrapose H,
-    simp,
-    tidy,
-    exact int.neg_succ_lt_zero n,
+    cases H,
   },
 },
 end
@@ -637,7 +626,7 @@ begin
           have h' : m ∈ Q,
           {
             split,
-            simp,
+            simp only [exists_prop],
             split,
             use a,
             use [eq.symm f'],
@@ -665,17 +654,17 @@ begin
         simp at h,
         simp, 
         apply ideal.ext,
-        rintros,
+        rintros y,
         simp only [submodule.mem_bot],
         split,
         {
-          rintros,
-          specialize h x_1, 
+          rintros b,
+          specialize h y, 
           simp at h,
-          apply h a_1,
+          apply h b,
         },
-        rintros,
-        rw a_1,
+        rintros b,
+        rw b,
         simp,
       },
       have p : Inf Q ∈ Q,
